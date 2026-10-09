@@ -1,6 +1,7 @@
 -- Run once on your MySQL server using an account allowed to create databases/tables.
-CREATE DATABASE IF NOT EXISTS lunch_delivery CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE lunch_delivery;
+CREATE DATABASE IF NOT EXISTS FoodDelivery CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE FoodDelivery;
+
 CREATE TABLE IF NOT EXISTS customer (
   id INT NOT NULL AUTO_INCREMENT,
   first_name VARCHAR(100) NOT NULL,
