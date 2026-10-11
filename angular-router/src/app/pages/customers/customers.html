@@ -1,80 +1,150 @@
 <section class="customer-page">
-  <header class="page-header">
-    <div>
-      <h1>ข้อมูลลูกค้า</h1>
-      <p>รายชื่อลูกค้าและพิกัดสำหรับจัดส่งข้าวกล่อง</p>
+    <header class="page-header">
+        <div>
+            <h1>ข้อมูลลูกค้า</h1>
+            <p>รายชื่อลูกค้าและพิกัดสำหรับจัดส่งข้าวกล่อง</p>
+        </div>
+
+        <div class="header-actions">
+
+        <button type="button" class="reload-button" [disabled]="loading() || saving() || showAddForm()"
+            (click)="openAddForm()">
+            เพิ่มลูกค้า
+        </button>
+
+        <button type="button" class="secondary-button" [disabled]="loading() || saving()" (click)="loadCustomers()">
+            {{ loading() ? 'กำลังโหลด…' : 'โหลดข้อมูลใหม่' }}
+        </button>
     </div>
 
-    <button
-      type="button"
-      class="reload-button"
-      [disabled]="loading()"
-      (click)="loadCustomers()"
-    >
-      {{ loading() ? 'กำลังโหลด…' : 'โหลดข้อมูลใหม่' }}
-    </button>
-  </header>
+    </header>
+    
 
-  @if (loading()) {
+    @if (successMessage()) {
+    <div class="success-box" role="status" aria-live="polite">
+        {{ successMessage() }}
+    </div>
+    }
+
+    @if (showAddForm()) {
+    <section class="form-card" aria-labelledby="add-customer-title">
+        <h2 id="add-customer-title">เพิ่มลูกค้าใหม่</h2>
+        <p class="form-description">
+            กรอกข้อมูลลูกค้าและพิกัดบ้านสำหรับจัดส่ง
+        </p>
+
+        <form [formGroup]="customerForm" (ngSubmit)="saveCustomer()">
+            <fieldset [disabled]="saving()">
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label for="first-name">ชื่อ</label>
+                        <input id="first-name" type="text" formControlName="first_name" autocomplete="given-name"
+                            maxlength="100" required />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="last-name">นามสกุล</label>
+                        <input id="last-name" type="text" formControlName="last_name" autocomplete="family-name"
+                            maxlength="100" required />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="phone">เบอร์โทร</label>
+                        <input id="phone" type="tel" formControlName="phone" autocomplete="tel" maxlength="20"
+                            required />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="latitude">ละติจูด</label>
+                        <input id="latitude" type="number" formControlName="latitude" min="-90" max="90" step="any"
+                            placeholder="เช่น 16.246" required />
+                        <small>ค่าระหว่าง -90 ถึง 90</small>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="longitude">ลองจิจูด</label>
+                        <input id="longitude" type="number" formControlName="longitude" min="-180" max="180" step="any"
+                            placeholder="เช่น 103.25" required />
+                        <small>ค่าระหว่าง -180 ถึง 180</small>
+                    </div>
+                </div>
+
+                @if (formError()) {
+                <p class="form-error" role="alert">
+                    {{ formError() }}
+                </p>
+                }
+
+                <div class="form-actions">
+                    <button type="submit" class="reload-button" [disabled]="saving() || loading()">
+                        {{ saving() ? 'กำลังบันทึก…' : 'บันทึกลูกค้า' }}
+                    </button>
+
+                    <button type="button" class="secondary-button" (click)="cancelAddForm()">
+                        ยกเลิก
+                    </button>
+                </div>
+            </fieldset>
+        </form>
+    </section>
+    }
+
+    @if (loading()) {
     <div class="state-box" role="status" aria-live="polite">
-      <p>กำลังโหลดข้อมูลลูกค้า…</p>
-      <small>
-        หากบริการ Render กำลังเริ่มทำงาน อาจใช้เวลาสักครู่
-      </small>
+        <p>กำลังโหลดข้อมูลลูกค้า…</p>
+        <small>
+            หากบริการ Render กำลังเริ่มทำงาน อาจใช้เวลาสักครู่
+        </small>
     </div>
-  } @else if (errorMessage()) {
+    } @else if (errorMessage()) {
     <div class="state-box error-box" role="alert">
-      <p>{{ errorMessage() }}</p>
+        <p>{{ errorMessage() }}</p>
 
-      <button
-        type="button"
-        class="reload-button"
-        (click)="loadCustomers()"
-      >
-        ลองอีกครั้ง
-      </button>
+        <button type="button" class="reload-button" (click)="loadCustomers()">
+            ลองอีกครั้ง
+        </button>
     </div>
-  } @else {
+    } @else {
     <p class="customer-count">
-      ลูกค้าทั้งหมด {{ customers().length }} คน
+        ลูกค้าทั้งหมด {{ customers().length }} คน
     </p>
 
     @if (customers().length === 0) {
-      <div class="state-box">
+    <div class="state-box">
         <p>ยังไม่มีข้อมูลลูกค้า</p>
-      </div>
+    </div>
     } @else {
-      <div class="table-wrapper">
+    <div class="table-wrapper">
         <table>
-          <caption class="sr-only">
-            รายชื่อลูกค้า เบอร์โทร และพิกัดจัดส่ง
-          </caption>
+            <caption class="sr-only">
+                รายชื่อลูกค้า เบอร์โทร และพิกัดจัดส่ง
+            </caption>
 
-          <thead>
-            <tr>
-              <th scope="col">รหัส</th>
-              <th scope="col">ชื่อ</th>
-              <th scope="col">นามสกุล</th>
-              <th scope="col">เบอร์โทร</th>
-              <th scope="col">ละติจูด</th>
-              <th scope="col">ลองจิจูด</th>
-            </tr>
-          </thead>
+            <thead>
+                <tr>
+                    <th scope="col">รหัส</th>
+                    <th scope="col">ชื่อ</th>
+                    <th scope="col">นามสกุล</th>
+                    <th scope="col">เบอร์โทร</th>
+                    <th scope="col">ละติจูด</th>
+                    <th scope="col">ลองจิจูด</th>
+                </tr>
+            </thead>
 
-          <tbody>
-            @for (customer of customers(); track customer.id) {
-              <tr>
-                <td>{{ customer.id }}</td>
-                <td>{{ customer.first_name }}</td>
-                <td>{{ customer.last_name }}</td>
-                <td>{{ customer.phone }}</td>
-                <td>{{ customer.latitude }}</td>
-                <td>{{ customer.longitude }}</td>
-              </tr>
-            }
-          </tbody>
+            <tbody>
+                @for (customer of customers(); track customer.id) {
+                <tr>
+                    <td>{{ customer.id }}</td>
+                    <td>{{ customer.first_name }}</td>
+                    <td>{{ customer.last_name }}</td>
+                    <td>{{ customer.phone }}</td>
+                    <td>{{ customer.latitude }}</td>
+                    <td>{{ customer.longitude }}</td>
+                </tr>
+                }
+            </tbody>
         </table>
-      </div>
+    </div>
     }
-  }
+    }
 </section>

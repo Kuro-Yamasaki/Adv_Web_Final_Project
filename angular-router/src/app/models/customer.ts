@@ -6,3 +6,5 @@ export interface Customer {
   latitude: number;
   longitude: number;
 } 
+
+export type CustomerInput = Omit<Customer, 'id'>;
