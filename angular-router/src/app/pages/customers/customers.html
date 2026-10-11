@@ -20,6 +20,101 @@
 
     </header>
 
+    <section class="search-card" aria-label="ค้นหาลูกค้า">
+        <form [formGroup]="searchForm" (ngSubmit)="searchCustomers()">
+            <label for="customer-search">
+                ค้นหาจากชื่อหรือนามสกุล
+            </label>
+
+            <div class="search-row">
+                <input id="customer-search" type="search" formControlName="q" maxlength="100"
+                    placeholder="พิมพ์บางส่วนของชื่อหรือนามสกุล" />
+
+                <button type="submit" class="reload-button" [disabled]="
+          loading() ||
+          saving() ||
+          deleting() ||
+          deleteTarget() !== null ||
+          showAddForm()
+        ">
+                    ค้นหา
+                </button>
+
+                <button type="button" class="secondary-button" [disabled]="
+          loading() ||
+          saving() ||
+          deleting() ||
+          deleteTarget() !== null ||
+          showAddForm()
+        " (click)="clearSearch()">
+                    แสดงทั้งหมด
+                </button>
+            </div>
+
+            @if (searchError()) {
+            <p class="form-error" role="alert">
+                {{ searchError() }}
+            </p>
+            }
+        </form>
+    </section>
+
+    <section class="search-card" aria-labelledby="nearby-title">
+        <h2 id="nearby-title" class="nearby-title">
+            ค้นลูกค้าในรัศมี 1 กม.
+        </h2>
+
+        <p class="nearby-description">
+            กรอกพิกัดจุดศูนย์กลางที่ต้องการค้นหา
+            ระยะที่แสดงไม่ใช่ระยะขับรถตามถนน
+        </p>
+
+        <form [formGroup]="nearbyForm" (ngSubmit)="searchNearby()">
+            <div class="nearby-grid">
+                <div class="form-field">
+                    <label for="nearby-latitude">ละติจูดจุดศูนย์กลาง</label>
+
+                    <input id="nearby-latitude" type="number" formControlName="latitude" min="-90" max="90" step="any"
+                        placeholder="เช่น 16.246" required />
+                </div>
+
+                <div class="form-field">
+                    <label for="nearby-longitude">ลองจิจูดจุดศูนย์กลาง</label>
+
+                    <input id="nearby-longitude" type="number" formControlName="longitude" min="-180" max="180"
+                        step="any" placeholder="เช่น 103.25" required />
+                </div>
+            </div>
+
+            @if (nearbyError()) {
+            <p class="form-error" role="alert">
+                {{ nearbyError() }}
+            </p>
+            }
+
+            <div class="form-actions">
+                <button type="submit" class="reload-button" [disabled]="
+          loading() ||
+          saving() ||
+          deleting() ||
+          deleteTarget() !== null ||
+          showAddForm()
+        ">
+                    ค้นในรัศมี 1 กม.
+                </button>
+
+                <button type="button" class="secondary-button" [disabled]="
+          loading() ||
+          saving() ||
+          deleting() ||
+          deleteTarget() !== null ||
+          showAddForm()
+        " (click)="clearSearch()">
+                    แสดงทั้งหมด
+                </button>
+            </div>
+        </form>
+    </section>
 
     @if (successMessage()) {
     <div class="success-box" role="status" aria-live="polite">
@@ -149,12 +244,26 @@
     </div>
     } @else {
     <p class="customer-count">
+        @if (activeCenter(); as center) {
+        พบลูกค้า {{ customers().length }} คน ในรัศมี 1 กม.
+        จากพิกัด {{ center.latitude }}, {{ center.longitude }}
+        } @else if (activeKeyword()) {
+        พบลูกค้า {{ customers().length }} คน
+        สำหรับคำค้น “{{ activeKeyword() }}”
+        } @else {
         ลูกค้าทั้งหมด {{ customers().length }} คน
+        }
     </p>
 
     @if (customers().length === 0) {
     <div class="state-box">
+        @if (activeCenter()) {
+        <p>ไม่พบลูกค้าในรัศมี 1 กม. จากพิกัดที่กำหนด</p>
+        } @else if (activeKeyword()) {
+        <p>ไม่พบลูกค้าที่ตรงกับคำค้น “{{ activeKeyword() }}”</p>
+        } @else {
         <p>ยังไม่มีข้อมูลลูกค้า</p>
+        }
     </div>
     } @else {
     <div class="table-wrapper">
@@ -171,6 +280,11 @@
                     <th scope="col">เบอร์โทร</th>
                     <th scope="col">ละติจูด</th>
                     <th scope="col">ลองจิจูด</th>
+
+                    @if (activeCenter()) {
+                    <th scope="col">ระยะทาง (กม.)</th>
+                    }
+
                     <th scope="col">จัดการ</th>
                 </tr>
             </thead>
@@ -184,6 +298,15 @@
                     <td>{{ customer.phone }}</td>
                     <td>{{ customer.latitude }}</td>
                     <td>{{ customer.longitude }}</td>
+                    @if (activeCenter()) {
+                    <td>
+                        @if (customer.distance_km !== undefined) {
+                        {{ customer.distance_km | number: '1.3-3' }}
+                        } @else {
+                        —
+                        }
+                    </td>
+                    }
                     <td>
                         <div class="row-actions">
                             <button type="button" class="edit-button" [disabled]="
@@ -216,7 +339,7 @@
                                 ลบ
                             </button>
                         </div>
-                    </td> 
+                    </td>
                 </tr>
                 }
             </tbody>

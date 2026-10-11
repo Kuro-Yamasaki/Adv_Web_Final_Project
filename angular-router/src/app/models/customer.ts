@@ -5,6 +5,7 @@ export interface Customer {
   phone: string;
   latitude: number;
   longitude: number;
+  distance_km?: number;
 } 
 
-export type CustomerInput = Omit<Customer, 'id'>;
+export type CustomerInput = Omit<Customer, 'id' | 'distance_km'>;

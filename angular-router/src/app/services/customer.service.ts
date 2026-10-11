@@ -39,4 +39,24 @@ export class CustomerService {
             `${this.apiUrl}/${id}`,
         );
     }
+
+    search(keyword: string): Observable<Customer[]> {
+        return this.http.get<Customer[]>(`${this.apiUrl}/search`, {
+            params: {
+                q: keyword,
+            },
+        });
+    }
+
+    nearby(
+        latitude: number,
+        longitude: number,
+    ): Observable<Customer[]> {
+        return this.http.get<Customer[]>(`${this.apiUrl}/nearby`, {
+            params: {
+                latitude: latitude.toString(),
+                longitude: longitude.toString(),
+            },
+        });
+    }
 }
