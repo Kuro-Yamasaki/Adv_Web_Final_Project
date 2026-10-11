@@ -5,7 +5,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-
+import { map } from 'rxjs';
 import { Customer } from '../../models/customer';
 import { CustomerService } from '../../services/customer.service';
 
@@ -25,6 +25,10 @@ export class Customers implements OnInit {
   readonly errorMessage = signal('');
 
   readonly showAddForm = signal(false);
+  readonly editingId = signal<number | null>(null);
+  readonly deleteTarget = signal<Customer | null>(null);
+  readonly deleting = signal(false);
+  readonly deleteError = signal('');
   readonly saving = signal(false);
   readonly formError = signal('');
   readonly successMessage = signal('');
@@ -59,7 +63,9 @@ export class Customers implements OnInit {
   }
 
   loadCustomers(): void {
-    if (this.loading()) {
+    if (this.loading() ||
+      this.deleting() ||
+      this.deleteTarget() !== null) {
       return;
     }
 
@@ -84,17 +90,47 @@ export class Customers implements OnInit {
   }
 
   openAddForm(): void {
+    if (this.saving() || this.loading() || this.deleting() ||
+      this.deleteTarget() !== null) {
+      return;
+    }
+
+    this.editingId.set(null);
     this.customerForm.reset();
     this.formError.set('');
     this.successMessage.set('');
     this.showAddForm.set(true);
+
   }
 
+  openEditForm(customer: Customer): void {
+    if (this.saving() || this.loading() || this.deleting() ||
+      this.deleteTarget() !== null) {
+      return;
+    }
+
+    this.editingId.set(customer.id);
+
+    this.customerForm.reset({
+      first_name: customer.first_name,
+      last_name: customer.last_name,
+      phone: customer.phone,
+      latitude: customer.latitude,
+      longitude: customer.longitude,
+    });
+
+    this.formError.set('');
+    this.successMessage.set('');
+    this.showAddForm.set(true);
+    this.deleting() ||
+      this.deleteTarget() !== null
+  }
   cancelAddForm(): void {
     if (this.saving()) {
       return;
     }
 
+    this.editingId.set(null);
     this.customerForm.reset();
     this.formError.set('');
     this.showAddForm.set(false);
@@ -122,7 +158,6 @@ export class Customers implements OnInit {
     const latitude = value.latitude;
     const longitude = value.longitude;
 
-    // Validators.required ไม่ปฏิเสธข้อความที่เป็นช่องว่างล้วน
     if (!firstName || !lastName || !phone) {
       this.formError.set('ชื่อ นามสกุล และเบอร์โทรต้องไม่เป็นช่องว่าง');
       return;
@@ -138,37 +173,135 @@ export class Customers implements OnInit {
       return;
     }
 
+    const data = {
+      first_name: firstName,
+      last_name: lastName,
+      phone,
+      latitude,
+      longitude,
+    };
+
+    const id = this.editingId();
+
+    // แปลงผลสำเร็จของทั้ง POST และ PUT ให้เป็นข้อความ
+    const request$ =
+      id === null
+        ? this.customerService.create(data).pipe(
+          map(
+            (result) =>
+              `เพิ่มลูกค้าสำเร็จ รหัสลูกค้า ${result.last_idx}`,
+          ),
+        )
+        : this.customerService.update(id, data).pipe(
+          map(() => `แก้ไขลูกค้ารหัส ${id} สำเร็จ`),
+        );
+
     this.saving.set(true);
 
-    this.customerService
-      .create({
-        first_name: firstName,
-        last_name: lastName,
-        phone,
-        latitude,
-        longitude,
-      })
-      .subscribe({
-        next: (result) => {
-          this.saving.set(false);
-          this.customerForm.reset();
-          this.showAddForm.set(false);
+    request$.subscribe({
+      next: (message) => {
+        this.saving.set(false);
+        this.customerForm.reset();
+        this.editingId.set(null);
+        this.showAddForm.set(false);
+        this.successMessage.set(message);
 
-          this.successMessage.set(
-            `เพิ่มลูกค้าสำเร็จ รหัสลูกค้า ${result.last_idx}`,
-          );
+        this.loadCustomers();
+      },
 
-          this.loadCustomers();
-        },
-        error: (error: HttpErrorResponse) => {
-          this.saving.set(false);
+      error: (error: HttpErrorResponse) => {
+        this.saving.set(false);
 
+        if (error.status === 0) {
           this.formError.set(
-            error.status === 0
-              ? 'ติดต่อ API ไม่ได้ กรุณาตรวจอินเทอร์เน็ตหรือ CORS'
-              : `บันทึกไม่สำเร็จ (HTTP ${error.status}) กรุณาตรวจข้อมูลแล้วลองใหม่`,
+            'ติดต่อ API ไม่ได้ กรุณาตรวจอินเทอร์เน็ตหรือ CORS',
           );
-        },
-      });
+        } else if (error.status === 404) {
+          this.formError.set(
+            'ไม่พบลูกค้ารายนี้ อาจถูกลบไปแล้ว กรุณายกเลิกและโหลดข้อมูลใหม่',
+          );
+        } else {
+          this.formError.set(
+            `บันทึกไม่สำเร็จ (HTTP ${error.status}) กรุณาตรวจข้อมูลแล้วลองใหม่`,
+          );
+        }
+      },
+    });
   }
+
+  openDeleteConfirmation(customer: Customer): void {
+    if (
+      this.loading() ||
+      this.saving() ||
+      this.deleting() ||
+      this.showAddForm()
+    ) {
+      return;
+    }
+
+    this.deleteTarget.set(customer);
+    this.deleteError.set('');
+    this.successMessage.set('');
+  }
+
+  cancelDelete(): void {
+    if (this.deleting()) {
+      return;
+    }
+
+    this.deleteTarget.set(null);
+    this.deleteError.set('');
+  }
+
+  confirmDelete(): void {
+    const customer = this.deleteTarget();
+
+    if (
+      !customer ||
+      this.loading() ||
+      this.saving() ||
+      this.deleting()
+    ) {
+      return;
+    }
+
+    this.deleting.set(true);
+    this.deleteError.set('');
+
+    this.customerService.remove(customer.id).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.deleteTarget.set(null);
+
+        this.successMessage.set(
+          `ลบลูกค้ารหัส ${customer.id} สำเร็จ`,
+        );
+
+        this.loadCustomers();
+      },
+
+      error: (error: HttpErrorResponse) => {
+        this.deleting.set(false);
+
+        if (error.status === 409) {
+          this.deleteError.set(
+            'ลบไม่ได้ เพราะลูกค้ารายนี้มีออเดอร์อ้างอิงอยู่',
+          );
+        } else if (error.status === 404) {
+          this.deleteError.set(
+            'ไม่พบลูกค้ารายนี้ อาจถูกลบไปแล้ว กรุณายกเลิกและโหลดข้อมูลใหม่',
+          );
+        } else if (error.status === 0) {
+          this.deleteError.set(
+            'ติดต่อ API ไม่ได้ กรุณาตรวจอินเทอร์เน็ตหรือ CORS',
+          );
+        } else {
+          this.deleteError.set(
+            `ลบไม่สำเร็จ (HTTP ${error.status}) กรุณาลองใหม่`,
+          );
+        }
+      },
+    });
+  }
+
 }

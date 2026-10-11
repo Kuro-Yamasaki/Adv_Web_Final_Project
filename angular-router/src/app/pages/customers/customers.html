@@ -7,31 +7,68 @@
 
         <div class="header-actions">
 
-        <button type="button" class="reload-button" [disabled]="loading() || saving() || showAddForm()"
-            (click)="openAddForm()">
-            เพิ่มลูกค้า
-        </button>
+            <button type="button" class="reload-button" [disabled]=" loading() || saving() || showAddForm() 
+            || deleting() || deleteTarget() !== null" (click)="openAddForm()">
+                เพิ่มลูกค้า
+            </button>
 
-        <button type="button" class="secondary-button" [disabled]="loading() || saving()" (click)="loadCustomers()">
-            {{ loading() ? 'กำลังโหลด…' : 'โหลดข้อมูลใหม่' }}
-        </button>
-    </div>
+            <button type="button" class="secondary-button" [disabled]="loading() || saving() || deleting() 
+            || deleteTarget() !== null" (click)="loadCustomers()">
+                {{ loading() ? 'กำลังโหลด…' : 'โหลดข้อมูลใหม่' }}
+            </button>
+        </div>
 
     </header>
-    
+
 
     @if (successMessage()) {
     <div class="success-box" role="status" aria-live="polite">
         {{ successMessage() }}
     </div>
     }
+    @if (deleteTarget(); as customer) {
+    <section class="delete-card" aria-labelledby="delete-customer-title">
+        <h2 id="delete-customer-title">ยืนยันการลบลูกค้า</h2>
 
+        <p>
+            ต้องการลบลูกค้า
+            <strong>
+                {{ customer.first_name }} {{ customer.last_name }}
+            </strong>
+            รหัส {{ customer.id }} ใช่หรือไม่?
+        </p>
+
+        <p class="delete-warning">
+            การลบสำเร็จแล้วไม่สามารถย้อนกลับผ่านหน้านี้ได้
+            หากลูกค้ามีออเดอร์อ้างอิงอยู่ ระบบจะไม่อนุญาตให้ลบ
+        </p>
+
+        @if (deleteError()) {
+        <p class="form-error" role="alert">
+            {{ deleteError() }}
+        </p>
+        }
+
+        <div class="form-actions">
+            <button type="button" class="delete-button" [disabled]="deleting()" (click)="confirmDelete()">
+                {{ deleting() ? 'กำลังลบ…' : 'ยืนยันลบลูกค้า' }}
+            </button>
+
+            <button type="button" class="secondary-button" [disabled]="deleting()" (click)="cancelDelete()">
+                ยกเลิก
+            </button>
+        </div>
+    </section>
+    }
     @if (showAddForm()) {
     <section class="form-card" aria-labelledby="add-customer-title">
-        <h2 id="add-customer-title">เพิ่มลูกค้าใหม่</h2>
-        <p class="form-description">
-            กรอกข้อมูลลูกค้าและพิกัดบ้านสำหรับจัดส่ง
-        </p>
+        <h2 id="add-customer-title">
+            @if (editingId() !== null) {
+            แก้ไขลูกค้า — รหัส {{ editingId() }}
+            } @else {
+            เพิ่มลูกค้าใหม่
+            }
+        </h2>
 
         <form [formGroup]="customerForm" (ngSubmit)="saveCustomer()">
             <fieldset [disabled]="saving()">
@@ -77,7 +114,13 @@
 
                 <div class="form-actions">
                     <button type="submit" class="reload-button" [disabled]="saving() || loading()">
-                        {{ saving() ? 'กำลังบันทึก…' : 'บันทึกลูกค้า' }}
+                        @if (saving()) {
+                        กำลังบันทึก…
+                        } @else if (editingId() !== null) {
+                        บันทึกการแก้ไข
+                        } @else {
+                        บันทึกลูกค้า
+                        }
                     </button>
 
                     <button type="button" class="secondary-button" (click)="cancelAddForm()">
@@ -128,6 +171,7 @@
                     <th scope="col">เบอร์โทร</th>
                     <th scope="col">ละติจูด</th>
                     <th scope="col">ลองจิจูด</th>
+                    <th scope="col">จัดการ</th>
                 </tr>
             </thead>
 
@@ -140,6 +184,39 @@
                     <td>{{ customer.phone }}</td>
                     <td>{{ customer.latitude }}</td>
                     <td>{{ customer.longitude }}</td>
+                    <td>
+                        <div class="row-actions">
+                            <button type="button" class="edit-button" [disabled]="
+        loading() ||
+        saving() ||
+        showAddForm() ||
+        deleting() ||
+        deleteTarget() !== null
+      " [attr.aria-label]="
+        'แก้ไขลูกค้า ' +
+        customer.first_name +
+        ' ' +
+        customer.last_name
+      " (click)="openEditForm(customer)">
+                                แก้ไข
+                            </button>
+
+                            <button type="button" class="delete-button" [disabled]="
+        loading() ||
+        saving() ||
+        showAddForm() ||
+        deleting() ||
+        deleteTarget() !== null
+      " [attr.aria-label]="
+        'ลบลูกค้า ' +
+        customer.first_name +
+        ' ' +
+        customer.last_name
+      " (click)="openDeleteConfirmation(customer)">
+                                ลบ
+                            </button>
+                        </div>
+                    </td> 
                 </tr>
                 }
             </tbody>

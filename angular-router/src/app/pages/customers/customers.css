@@ -66,7 +66,7 @@ h1 {
 
 table {
   width: 100%;
-  min-width: 720px;
+  min-width: 820px;
   border-collapse: collapse;
 }
 
@@ -267,4 +267,85 @@ fieldset {
   .form-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.edit-button {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid #1967b3;
+  border-radius: 8px;
+  background: white;
+  color: #145491;
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.edit-button:hover:not(:disabled) {
+  background: #e5f2fc;
+}
+
+.edit-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.edit-button:focus-visible {
+  outline: 3px solid #1967b3;
+  outline-offset: 3px;
+}
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.delete-button {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid #9c2b23;
+  border-radius: 8px;
+  background: white;
+  color: #9c2b23;
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.delete-button:hover:not(:disabled) {
+  background: #fce9e7;
+}
+
+.delete-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.delete-button:focus-visible {
+  outline: 3px solid #9c2b23;
+  outline-offset: 3px;
+}
+
+.delete-card {
+  margin-bottom: 24px;
+  padding: 24px;
+  border: 1px solid #9c2b23;
+  border-radius: 8px;
+  background: #fff5f4;
+}
+
+.delete-card h2 {
+  margin: 0 0 16px;
+  font-size: 22px;
+  color: #9c2b23;
+}
+
+.delete-card p {
+  overflow-wrap: anywhere;
+}
+
+.delete-warning {
+  color: #595959;
 }

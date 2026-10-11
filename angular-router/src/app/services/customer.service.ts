@@ -23,4 +23,20 @@ export class CustomerService {
             last_idx: number;
         }>(this.apiUrl, data);
     }
+
+    update(
+        id: number,
+        data: CustomerInput,
+    ): Observable<{ message: string; affected_row: number }> {
+        return this.http.put<{
+            message: string;
+            affected_row: number;
+        }>(`${this.apiUrl}/${id}`, data);
+    }
+
+    remove(id: number): Observable<{ affected_row: number }> {
+        return this.http.delete<{ affected_row: number }>(
+            `${this.apiUrl}/${id}`,
+        );
+    }
 }
