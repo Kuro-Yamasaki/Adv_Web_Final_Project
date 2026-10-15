@@ -16,6 +16,7 @@ export const conn = createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
 
+
   ssl: {
     ca: readFileSync(resolve(caPath), "utf8"),
     rejectUnauthorized: true,
@@ -24,4 +25,5 @@ export const conn = createPool({
   waitForConnections: true,
   connectionLimit: 10,
   decimalNumbers: true,
+  dateStrings: ["DATE"],
 });

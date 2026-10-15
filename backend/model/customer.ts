@@ -1,3 +1,6 @@
+import { SHOP, RULES } from "../config";
+import { haversineKm } from "../geo";
+
 export interface CustomerInput {
   first_name: string;
   last_name: string;
@@ -23,5 +26,11 @@ export function validateCustomer(body: unknown): string | null {
       return `${key} must be a number between ${min} and ${max}`;
     }
   }
+
+  const distance = haversineKm(SHOP.latitude, SHOP.longitude, data.latitude as number, data.longitude as number);
+  if (distance > RULES.serviceRadiusKm) {
+    return `Customer is ${distance.toFixed(2)} km from the shop (max ${RULES.serviceRadiusKm} km)`;
+  }
+
   return null;
 }

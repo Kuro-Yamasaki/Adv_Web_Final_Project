@@ -1,7 +1,9 @@
 import express from "express";
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 import { conn } from "../dbconnect";
-import { OrderPostRequest } from "../model/order";
+import { OrderPostRequest, ORDER_STATUSES, OrderStatus } from "../model/order";
+import { todayBangkok, isValidDate } from "../config";
+
 
 export const router = express.Router();
 
@@ -88,24 +90,32 @@ router.get("/nearby", async (req, res) => {
 });
 
 // แสดงออเดอร์ทั้งหมด พร้อมข้อมูลลูกค้าที่สั่ง
-router.get("/", async (_req, res) => {
-  const [rows] = await conn.query<RowDataPacket[]>(`
-    SELECT
-      o.id,
-      o.customer_id,
-      c.first_name,
-      c.last_name,
-      c.phone,
-      o.box_quantity,
-      o.ordered_at,
-      o.delivery_latitude,
-      o.delivery_longitude,
-      o.is_simulated
+router.get("/", async (req, res) => {
+  const { date, status } = req.query;
+  const where: string[] = [];
+  const params: string[] = [];
+
+  if (date !== undefined) {
+    if (typeof date !== "string" || !isValidDate(date)) {
+      res.status(400).json({ error: "date must be YYYY-MM-DD" }); return;
+    }
+    where.push("o.delivery_date = ?"); params.push(date);
+  }
+  if (status !== undefined) {
+    if (typeof status !== "string" || !ORDER_STATUSES.includes(status as OrderStatus)) {
+      res.status(400).json({ error: `status must be one of ${ORDER_STATUSES.join(", ")}` }); return;
+    }
+    where.push("o.status = ?"); params.push(status);
+  }
+
+  const [rows] = await conn.execute<RowDataPacket[]>(`
+    SELECT o.id, o.customer_id, c.first_name, c.last_name, c.phone,
+           o.box_quantity, o.ordered_at, o.delivery_date, o.status,
+           o.delivery_latitude, o.delivery_longitude, o.is_simulated
     FROM orders AS o
-    INNER JOIN customer AS c
-      ON o.customer_id = c.id
-    ORDER BY o.id DESC
-  `);
+    INNER JOIN customer AS c ON o.customer_id = c.id
+    ${where.length ? "WHERE " + where.join(" AND ") : ""}
+    ORDER BY o.id DESC`, params);
 
   res.json(rows);
 });
@@ -150,17 +160,11 @@ router.post("/", async (req, res) => {
   // สร้างออเดอร์จากลูกค้าที่มีอยู่จริง
   // คัดลอกพิกัด และกำหนดว่าไม่ใช่ออเดอร์จำลอง
   const [result] = await conn.execute<ResultSetHeader>(
-    `INSERT INTO orders (
-      customer_id,
-      box_quantity,
-      delivery_latitude,
-      delivery_longitude,
-      is_simulated
-    )
-    SELECT id, ?, latitude, longitude, FALSE
-    FROM customer
-    WHERE id = ?`,
-    [box_quantity, customer_id]
+    `INSERT INTO orders (customer_id, box_quantity, delivery_date,
+       delivery_latitude, delivery_longitude, is_simulated)
+     SELECT id, ?, ?, latitude, longitude, FALSE
+     FROM customer WHERE id = ?`,
+    [box_quantity, todayBangkok(), customer_id]
   );
 
   if (result.affectedRows === 0) {
@@ -169,6 +173,7 @@ router.post("/", async (req, res) => {
     });
     return;
   }
+
 
   res.status(201).json({
     affected_row: result.affectedRows,
@@ -232,6 +237,7 @@ router.post("/simulate", async (req, res) => {
 
     const placeholders: string[] = [];
     const values: (number | string)[] = [];
+    const today = todayBangkok();
     let totalBoxes = 0;
 
     for (let i = 0; i < count; i++) {
@@ -240,27 +246,17 @@ router.post("/simulate", async (req, res) => {
 
       const quantity = Math.floor(Math.random() * 3) + 1;
 
-      placeholders.push("(?, ?, ?, ?, TRUE)");
-
-      values.push(
-        customer.id,
-        quantity,
-        customer.latitude,
-        customer.longitude
-      );
+      placeholders.push("(?, ?, ?, ?, ?, TRUE)");
+      values.push(customer.id, quantity, today, customer.latitude, customer.longitude);
 
       totalBoxes += quantity;
     }
 
     const [result] =
       await connection.execute<ResultSetHeader>(
-        `INSERT INTO orders (
-          customer_id,
-          box_quantity,
-          delivery_latitude,
-          delivery_longitude,
-          is_simulated
-        ) VALUES ${placeholders.join(", ")}`,
+        `INSERT INTO orders (customer_id, box_quantity, delivery_date,
+          delivery_latitude, delivery_longitude, is_simulated)
+         VALUES ${placeholders.join(", ")}`,
         values
       );
 
@@ -326,15 +322,10 @@ router.patch("/:id", async (req, res) => {
 
   // ตรวจว่ามีออเดอร์จริงก่อน
   const [rows] = await conn.execute<RowDataPacket[]>(
-    "SELECT id FROM orders WHERE id = ?",
-    [id]
-  );
-
-  if (rows.length === 0) {
-    res.status(404).json({
-      error: "Order not found",
-    });
-    return;
+    "SELECT status FROM orders WHERE id = ?", [id]);
+  if (rows.length === 0) { res.status(404).json({ error: "Order not found" }); return; }
+  if (rows[0].status !== "pending") {
+    res.status(409).json({ error: "Only pending orders can be changed" }); return;
   }
 
   const [result] = await conn.execute<ResultSetHeader>(
@@ -364,8 +355,15 @@ router.delete("/simulated", async (_req, res) => {
 router.delete("/:id", async (req, res) => {
   const id = Number(req.params.id);
 
+  const [rows] = await conn.execute<RowDataPacket[]>(
+    "SELECT status FROM orders WHERE id = ?", [id]);
+  if (rows.length === 0) { res.status(404).json({ error: "Order not found" }); return; }
+  if (rows[0].status !== "pending") {
+    res.status(409).json({ error: "Only pending orders can be deleted" }); return;
+  }
+
   const [result] = await conn.execute<ResultSetHeader>(
-    "DELETE FROM orders WHERE id = ?",
+    "DELETE FROM orders WHERE id = ? AND status = 'pending'",
     [id]
   );
 
