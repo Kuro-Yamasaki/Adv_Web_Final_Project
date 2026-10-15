@@ -201,6 +201,23 @@
                     </div>
                 </div>
 
+                <p class="map-hint">
+                    📍 คลิกบนแผนที่ด้านล่างเพื่อเลือกพิกัดบ้านลูกค้า หรือลากหมุดสีเขียวเพื่อย้ายตำแหน่ง
+                </p>
+
+                @if (pickedDistanceKm(); as distance) {
+                @if (distance > deliveryRadiusKm) {
+                <p class="map-warning" role="status">
+                    ⚠️ ตำแหน่งนี้ห่างจากร้าน {{ distance | number: '1.2-2' }} กม.
+                    เกินเขตส่ง {{ deliveryRadiusKm }} กม.
+                </p>
+                } @else {
+                <p class="map-ok" role="status">
+                    ห่างจากร้าน {{ distance | number: '1.2-2' }} กม. (อยู่ในเขตส่ง)
+                </p>
+                }
+                }
+
                 @if (formError()) {
                 <p class="form-error" role="alert">
                     {{ formError() }}
@@ -226,6 +243,27 @@
         </form>
     </section>
     }
+
+    <section id="customer-map-section" class="map-card" aria-labelledby="customer-map-title">
+        <div class="map-card-header">
+            <h2 id="customer-map-title" class="nearby-title">แผนที่ลูกค้า</h2>
+
+            <ul class="map-legend" aria-label="คำอธิบายสัญลักษณ์">
+                <li><span class="legend-dot legend-shop"></span>ร้าน</li>
+                <li><span class="legend-dot legend-inside"></span>ในเขตส่ง {{ deliveryRadiusKm }} กม.</li>
+                <li><span class="legend-dot legend-outside"></span>นอกเขตส่ง</li>
+                @if (showAddForm()) {
+                <li><span class="legend-dot legend-picked"></span>ตำแหน่งที่เลือก</li>
+                }
+                @if (activeCenter()) {
+                <li><span class="legend-dot legend-search"></span>รัศมีค้นหา 1 กม.</li>
+                }
+            </ul>
+        </div>
+
+        <app-customer-map [customers]="customers()" [picked]="pickedPoint()" [pickEnabled]="showAddForm() && !saving()"
+            [searchCenter]="activeCenter()" (pick)="onMapPick($event)" />
+    </section>
 
     @if (loading()) {
     <div class="state-box" role="status" aria-live="polite">
@@ -280,6 +318,7 @@
                     <th scope="col">เบอร์โทร</th>
                     <th scope="col">ละติจูด</th>
                     <th scope="col">ลองจิจูด</th>
+                    <th scope="col">ห่างจากร้าน (กม.)</th>
 
                     @if (activeCenter()) {
                     <th scope="col">ระยะทาง (กม.)</th>
@@ -298,6 +337,13 @@
                     <td>{{ customer.phone }}</td>
                     <td>{{ customer.latitude }}</td>
                     <td>{{ customer.longitude }}</td>
+                    <td>
+                        @let fromShop = distanceFromShop(customer);
+                        {{ fromShop | number: '1.2-2' }}
+                        @if (fromShop > deliveryRadiusKm) {
+                        <span class="outside-badge">นอกเขต</span>
+                        }
+                    </td>
                     @if (activeCenter()) {
                     <td>
                         @if (customer.distance_km !== undefined) {
@@ -309,6 +355,15 @@
                     }
                     <td>
                         <div class="row-actions">
+                            <button type="button" class="secondary-button map-button" [attr.aria-label]="
+        'ดูบนแผนที่ ' +
+        customer.first_name +
+        ' ' +
+        customer.last_name
+      " (click)="showOnMap(customer)">
+                                แผนที่
+                            </button>
+
                             <button type="button" class="edit-button" [disabled]="
         loading() ||
         saving() ||

@@ -1,0 +1,62 @@
+app-customer-map {
+  display: block;
+}
+
+.cmap {
+  height: 420px;
+  border: 1px solid #e6e5e3;
+  border-radius: 8px;
+  z-index: 0;
+}
+
+.cmap-picking {
+  cursor: crosshair;
+}
+
+.cmap-picking .leaflet-interactive {
+  cursor: crosshair;
+}
+
+.cmap-shop-icon span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: #2c2c2b;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 40%);
+}
+
+/* หมุดรูปหยดน้ำสำหรับตำแหน่งที่กำลังเลือก */
+.cmap-pick-icon span {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border: 3px solid white;
+  border-radius: 50% 50% 50% 0;
+  background: #16a34a;
+  transform: rotate(-45deg);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 40%);
+}
+
+.cmap-popup {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.cmap-popup strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 15px;
+}
+
+@media (max-width: 600px) {
+  .cmap {
+    height: 320px;
+  }
+}

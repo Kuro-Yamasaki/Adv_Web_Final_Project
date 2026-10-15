@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
-import { Customers } from './pages/customers/customers';
 
+// โหลดแต่ละหน้าเมื่อเปิดใช้ (lazy) เพื่อให้ไฟล์เริ่มต้นเล็ก
 export const routes: Routes = [
   {
     path: '',
@@ -9,7 +9,11 @@ export const routes: Routes = [
   },
   {
     path: 'customers',
-    component: Customers,
+    loadComponent: () => import('./pages/customers/customers').then((m) => m.Customers),
+  },
+  {
+    path: 'orders',
+    loadComponent: () => import('./pages/orders/orders').then((m) => m.Orders),
   },
   {
     path: '**',

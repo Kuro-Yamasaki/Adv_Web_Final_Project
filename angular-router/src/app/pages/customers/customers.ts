@@ -1,10 +1,14 @@
-import { Component, computed, inject, OnInit, signal, } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, viewChild, } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators, } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { map, type Observable } from 'rxjs';
 import { DecimalPipe } from '@angular/common';
+import { CustomerMap } from '../../components/customer-map/customer-map';
 import { Customer } from '../../models/customer';
 import { CustomerService } from '../../services/customer.service';
+import { DELIVERY_RADIUS_KM, GeoPoint, SHOP_LOCATION } from '../../shop.config';
+import { distanceKm } from '../../utils/geo';
 
 type CustomerFilter =
   | { type: 'all' }
@@ -18,7 +22,7 @@ type CustomerFilter =
 @Component({
   selector: 'app-customers',
   standalone: true,
-  imports: [ReactiveFormsModule, DecimalPipe],
+  imports: [ReactiveFormsModule, DecimalPipe, CustomerMap],
   templateUrl: './customers.html',
   styleUrl: './customers.css',
 })
@@ -94,8 +98,65 @@ export class Customers implements OnInit {
     ]),
   });
 
+  readonly deliveryRadiusKm = DELIVERY_RADIUS_KM;
+  private readonly customerMap = viewChild(CustomerMap);
+
+  private readonly customerFormValue = toSignal(this.customerForm.valueChanges, {
+    initialValue: this.customerForm.value,
+  });
+
+  // พิกัดในฟอร์มเพิ่ม/แก้ไข ใช้แสดงหมุดสีเขียวบนแผนที่
+  readonly pickedPoint = computed<GeoPoint | null>(() => {
+    if (!this.showAddForm()) {
+      return null;
+    }
+
+    const { latitude, longitude } = this.customerFormValue();
+
+    if (
+      latitude == null ||
+      longitude == null ||
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      Math.abs(latitude) > 90 ||
+      Math.abs(longitude) > 180
+    ) {
+      return null;
+    }
+
+    return { latitude, longitude };
+  });
+
+  readonly pickedDistanceKm = computed(() => {
+    const point = this.pickedPoint();
+    return point ? distanceKm(SHOP_LOCATION, point) : null;
+  });
+
   ngOnInit(): void {
     this.loadCustomers();
+  }
+
+  distanceFromShop(customer: Customer): number {
+    return distanceKm(SHOP_LOCATION, customer);
+  }
+
+  // คลิกหรือลากหมุดบนแผนที่ระหว่างเปิดฟอร์ม → เติมพิกัดลงฟอร์ม
+  onMapPick(point: GeoPoint): void {
+    if (!this.showAddForm() || this.saving()) {
+      return;
+    }
+
+    this.customerForm.patchValue(point);
+    this.customerForm.controls.latitude.markAsTouched();
+    this.customerForm.controls.longitude.markAsTouched();
+  }
+
+  showOnMap(customer: Customer): void {
+    document
+      .getElementById('customer-map-section')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    this.customerMap()?.focusCustomer(customer.id);
   }
 
   loadCustomers(
@@ -276,8 +337,6 @@ export class Customers implements OnInit {
     this.formError.set('');
     this.successMessage.set('');
     this.showAddForm.set(true);
-    this.deleting() ||
-      this.deleteTarget() !== null
   }
   cancelAddForm(): void {
     if (this.saving()) {
