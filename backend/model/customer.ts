@@ -10,7 +10,6 @@ export interface CustomerInput {
 }
 export interface Customer extends CustomerInput { id: number; }
 
-// TypeScript interfaces do not validate incoming JSON at runtime.
 export function validateCustomer(body: unknown): string | null {
   if (!body || typeof body !== "object" || Array.isArray(body)) return "Body must be a JSON object";
   const data = body as Record<string, unknown>;
