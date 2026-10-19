@@ -38,6 +38,8 @@ export interface CostSummary {
 }
 
 export interface DeliveryPlan {
+  id: number;
+  status: 'draft' | 'confirmed';
   created_at: string;
   routes: RiderRoute[];
   cost: CostSummary;
