@@ -5,7 +5,7 @@ import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import type { Observable } from 'rxjs';
 import { Customer } from '../../models/customer';
-import { Order } from '../../models/order';
+import { Order, OrderStatus } from '../../models/order';
 import { CustomerService } from '../../services/customer.service';
 import { OrderService } from '../../services/order.service';
 
@@ -26,10 +26,29 @@ function describeError(error: HttpErrorResponse): string {
     return 'ยังไม่มีลูกค้าในระบบ กรุณาเพิ่มลูกค้าก่อนจำลองออเดอร์';
   }
 
+  if (detail === 'Only pending orders can be changed' || detail === 'Only pending orders can be deleted') {
+    return 'ออเดอร์นี้แจกให้ไรเดอร์แล้ว แก้ไขหรือลบไม่ได้ กรุณาโหลดข้อมูลใหม่';
+  }
+
   return typeof detail === 'string'
     ? `ทำรายการไม่สำเร็จ (HTTP ${error.status}): ${detail}`
     : `ทำรายการไม่สำเร็จ (HTTP ${error.status}) กรุณาลองใหม่`;
 }
+
+// วันที่วันนี้ตามเวลาไทย รูปแบบ YYYY-MM-DD (ตรงกับ delivery_date ที่ backend บันทึก)
+function todayBangkok(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date());
+}
+
+type DateFilter = 'today' | 'all';
+type StatusFilter = OrderStatus | 'all';
+
+const STATUS_LABELS: Record<OrderStatus, string> = {
+  pending: 'รอจัดส่ง',
+  assigned: 'แจกงานแล้ว',
+  delivered: 'ส่งแล้ว',
+  cancelled: 'ยกเลิก',
+};
 
 @Component({
   selector: 'app-orders',
@@ -67,8 +86,26 @@ export class Orders implements OnInit {
     () => this.busy() || this.panel() !== 'none' || this.editingId() !== null,
   );
 
+  readonly today = todayBangkok();
+  readonly statusLabels = STATUS_LABELS;
+  readonly statusOptions = Object.keys(STATUS_LABELS) as OrderStatus[];
+  readonly dateFilter = signal<DateFilter>('today');
+  readonly statusFilter = signal<StatusFilter>('all');
+
+  // ออเดอร์ที่แสดงในตารางตามตัวกรอง (กรองฝั่งหน้าเว็บ สลับตัวกรองได้โดยไม่ต้องโหลดใหม่)
+  readonly visibleOrders = computed(() =>
+    this.orders().filter(
+      (order) =>
+        (this.dateFilter() === 'all' || order.delivery_date === this.today) &&
+        (this.statusFilter() === 'all' || order.status === this.statusFilter()),
+    ),
+  );
+
   readonly totalBoxes = computed(() =>
-    this.orders().reduce((sum, order) => sum + order.box_quantity, 0),
+    this.visibleOrders().reduce((sum, order) => sum + order.box_quantity, 0),
+  );
+  readonly pendingCount = computed(
+    () => this.visibleOrders().filter((order) => order.status === 'pending').length,
   );
   readonly simulatedCount = computed(
     () => this.orders().filter((order) => this.isSimulated(order)).length,
@@ -185,7 +222,24 @@ export class Orders implements OnInit {
     this.openPanel('clear');
   }
 
+  // แก้หรือลบได้เฉพาะออเดอร์ที่ยังไม่แจกให้ไรเดอร์ (backend ก็ตรวจซ้ำ)
+  isEditable(order: Order): boolean {
+    return order.status === 'pending';
+  }
+
+  setDateFilter(value: string): void {
+    this.dateFilter.set(value as DateFilter);
+  }
+
+  setStatusFilter(value: string): void {
+    this.statusFilter.set(value as StatusFilter);
+  }
+
   openDeleteConfirmation(order: Order): void {
+    if (!this.isEditable(order)) {
+      return;
+    }
+
     if (this.openPanel('delete')) {
       this.deleteTarget.set(order);
     }
@@ -259,7 +313,7 @@ export class Orders implements OnInit {
   }
 
   startEdit(order: Order): void {
-    if (this.locked()) {
+    if (this.locked() || !this.isEditable(order)) {
       return;
     }
 
