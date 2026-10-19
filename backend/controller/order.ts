@@ -339,16 +339,39 @@ router.patch("/:id", async (req, res) => {
   });
 });
 
-// ล้างเฉพาะออเดอร์จำลองทั้งหมด
+// ล้างออเดอร์จำลองที่ยังไม่ได้จัดให้ไรเดอร์ (pending)
+// ออเดอร์ที่อยู่ในแผนที่ยืนยันแล้วจะไม่ถูกลบ ใบงานไรเดอร์จึงไม่หายกลางทาง
+// แผนร่างทั้งหมดถูกลบด้วย เพราะออเดอร์เปลี่ยนแล้วต้องคำนวณใหม่อยู่ดี
 router.delete("/simulated", async (_req, res) => {
-  const [result] = await conn.execute<ResultSetHeader>(
-    "DELETE FROM orders WHERE is_simulated = TRUE"
-  );
+  const connection = await conn.getConnection();
 
-  res.status(200).json({
-    message: "Simulated orders cleared",
-    affected_row: result.affectedRows,
-  });
+  try {
+    await connection.beginTransaction();
+
+    await connection.execute("DELETE FROM delivery_plan WHERE status = 'draft'");
+
+    const [result] = await connection.execute<ResultSetHeader>(
+      "DELETE FROM orders WHERE is_simulated = TRUE AND status = 'pending'"
+    );
+
+    const [kept] = await connection.execute<RowDataPacket[]>(
+      "SELECT COUNT(*) AS total FROM orders WHERE is_simulated = TRUE"
+    );
+
+    await connection.commit();
+
+    res.status(200).json({
+      message: "Simulated pending orders cleared",
+      affected_row: result.affectedRows,
+      // ออเดอร์จำลองที่เก็บไว้เพราะอยู่ในแผนที่ยืนยันแล้ว (assigned / delivered)
+      kept_in_confirmed_plans: Number(kept[0].total),
+    });
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 });
 
 // ลบออเดอร์หนึ่งรายการ
