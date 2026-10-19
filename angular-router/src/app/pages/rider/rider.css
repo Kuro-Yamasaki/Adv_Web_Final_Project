@@ -118,6 +118,95 @@ h1 {
   gap: 8px;
 }
 
+/* จุดถัดไปที่ต้องไป เด่นกว่าจุดอื่น */
+.stop-card.is-next {
+  border: 2px solid #1967b3;
+  background: white;
+}
+
+/* จุดที่ส่งแล้ว ย่อให้เด่นน้อยลง */
+.stop-card.is-delivered {
+  background: #e8f1ec;
+  border-color: #c3dccb;
+}
+
+.stop-card.is-delivered .stop-name,
+.stop-card.is-delivered .stop-detail {
+  color: #595959;
+}
+
+.stop-card.is-delivered .stop-detail {
+  margin-bottom: 0;
+}
+
+.delivered-badge {
+  color: #245437;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* ปุ่มส่งถึงแล้ว: กดครั้งแรกเปลี่ยนเป็นสีเข้มให้ยืนยัน */
+.deliver-button {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 8px;
+  padding: 12px 18px;
+  border: 2px solid #34724b;
+  border-radius: 8px;
+  background: white;
+  color: #245437;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.deliver-button.is-confirming {
+  background: #34724b;
+  color: white;
+}
+
+.deliver-button:focus-visible {
+  outline: 3px solid #1967b3;
+  outline-offset: 3px;
+}
+
+/* ความคืบหน้า */
+.delivery-progress {
+  margin-bottom: 16px;
+}
+
+.delivery-progress-text {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.delivery-progress-text strong {
+  color: #245437;
+}
+
+.delivery-progress-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #e6e5e3;
+  overflow: hidden;
+}
+
+.delivery-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: #34724b;
+  transition: width 0.3s ease;
+}
+
+.stop-error {
+  margin: 0 0 16px;
+}
+
 /* สรุปท้ายใบงาน */
 .job-summary {
   margin: 0 0 20px;

@@ -17,12 +17,35 @@
         <span>ส่ง {{ job.stops.length }} จุด · ออกจากร้าน {{ rules.departTime }} น.</span>
     </div>
 
+    @if (job.plan_status === 'confirmed') {
+    <div class="delivery-progress" role="status" aria-live="polite">
+        <div class="delivery-progress-text">
+            <span>ส่งแล้ว {{ deliveredCount() }} / {{ job.stops.length }} จุด</span>
+            @if (allDelivered()) {
+            <strong>ส่งครบแล้ว ขอบคุณครับ</strong>
+            }
+        </div>
+        <div class="delivery-progress-track" aria-hidden="true">
+            <div class="delivery-progress-bar" [style.width.%]="(deliveredCount() / job.stops.length) * 100"></div>
+        </div>
+    </div>
+    }
+
+    @if (stopError()) {
+    <p class="error-box stop-error" role="alert">{{ stopError() }}</p>
+    }
+
     <ol class="stop-list">
         @for (stop of job.stops; track stop.order_id; let i = $index) {
-        <li class="stop-card">
+        <li class="stop-card" [class.is-delivered]="stop.status === 'delivered'"
+            [class.is-next]="job.plan_status === 'confirmed' && stop.order_id === nextStopId()">
             <div class="stop-head">
                 <span class="stop-no">จุดที่ {{ i + 1 }}</span>
+                @if (stop.status === 'delivered') {
+                <span class="delivered-badge">ส่งแล้ว ✓</span>
+                } @else {
                 <span class="stop-time">ถึงประมาณ {{ stop.arrive_at }} น.</span>
+                }
             </div>
 
             <p class="stop-name">คุณ{{ stop.customer_name }}</p>
@@ -31,6 +54,7 @@
                 ห่างจาก{{ i === 0 ? 'ร้าน' : 'จุดก่อนหน้า' }} {{ stop.leg_km | number: '1.1-1' }} กม.
             </p>
 
+            @if (stop.status !== 'delivered') {
             <div class="stop-actions">
                 <a class="primary-button" [href]="stopMapUrl(stop)" target="_blank" rel="noopener">
                     นำทางไปจุดนี้
@@ -39,6 +63,20 @@
                     โทร {{ stop.phone }}
                 </a>
             </div>
+
+            @if (canMarkDelivered(stop)) {
+            <button type="button" class="deliver-button" [class.is-confirming]="confirmingStop() === stop.order_id"
+                [disabled]="savingStop() !== null" (click)="markDelivered(stop)">
+                @if (savingStop() === stop.order_id) {
+                กำลังบันทึก…
+                } @else if (confirmingStop() === stop.order_id) {
+                แตะอีกครั้งเพื่อยืนยันว่าส่งถึงคุณ{{ stop.customer_name }}แล้ว
+                } @else {
+                ส่งถึงแล้ว
+                }
+            </button>
+            }
+            }
         </li>
         }
     </ol>

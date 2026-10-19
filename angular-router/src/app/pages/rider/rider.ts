@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { DecimalPipe } from '@angular/common';
@@ -46,6 +46,23 @@ export class Rider implements OnInit {
   readonly loading = signal(false);
   readonly errorMessage = signal('');
 
+  // กด "ส่งถึงแล้ว" ครั้งแรกจะถามยืนยัน (ย้อนกลับไม่ได้) กดซ้ำจึงบันทึก
+  readonly confirmingStop = signal<number | null>(null);
+  readonly savingStop = signal<number | null>(null);
+  readonly stopError = signal('');
+
+  readonly deliveredCount = computed(
+    () => this.job()?.stops.filter((stop) => stop.status === 'delivered').length ?? 0,
+  );
+  readonly allDelivered = computed(() => {
+    const job = this.job();
+    return !!job && job.stops.length > 0 && this.deliveredCount() === job.stops.length;
+  });
+  // จุดถัดไปที่ต้องไป = จุดแรกที่ยังไม่ส่ง
+  readonly nextStopId = computed(
+    () => this.job()?.stops.find((stop) => stop.status !== 'delivered')?.order_id ?? null,
+  );
+
   readonly jobForm = this.fb.nonNullable.group({
     jobCode: ['', [Validators.required, Validators.pattern(/^\s*[\w-]{1,20}\s*$/)]],
   });
@@ -87,6 +104,50 @@ export class Rider implements OnInit {
     }
   }
 
+  // กดส่งแล้วได้เฉพาะแผนที่ร้านยืนยันแล้ว และออเดอร์ที่แจกงานแล้ว
+  canMarkDelivered(stop: RouteStop): boolean {
+    return this.job()?.plan_status === 'confirmed' && stop.status === 'assigned';
+  }
+
+  markDelivered(stop: RouteStop): void {
+    const job = this.job();
+    if (!job || this.savingStop() !== null || !this.canMarkDelivered(stop)) {
+      return;
+    }
+
+    if (this.confirmingStop() !== stop.order_id) {
+      this.confirmingStop.set(stop.order_id);
+      this.stopError.set('');
+      return;
+    }
+
+    this.confirmingStop.set(null);
+    this.savingStop.set(stop.order_id);
+
+    this.planService.markDelivered(job.job_code, stop.order_id).subscribe({
+      next: (result) => {
+        this.job.update((current) =>
+          current && {
+            ...current,
+            stops: current.stops.map((item) =>
+              item.order_id === result.order_id ? { ...item, status: result.status } : item,
+            ),
+          },
+        );
+        this.savingStop.set(null);
+      },
+
+      error: (error: HttpErrorResponse) => {
+        this.stopError.set(
+          error.status === 409
+            ? 'บันทึกไม่ได้ ร้านอาจยังไม่ยืนยันแผน หรือออเดอร์ถูกเปลี่ยน กรุณากด "โหลดใบงานใหม่"'
+            : describeError(error),
+        );
+        this.savingStop.set(null);
+      },
+    });
+  }
+
   // นำทางจากตำแหน่งปัจจุบันของไรเดอร์ไปบ้านลูกค้า 1 จุด
   stopMapUrl(stop: RouteStop): string {
     return `${MAPS_DIR_URL}&destination=${toLatLng(stop)}&travelmode=driving`;
@@ -109,6 +170,8 @@ export class Rider implements OnInit {
   private loadJob(jobCode: string): void {
     this.loading.set(true);
     this.errorMessage.set('');
+    this.confirmingStop.set(null);
+    this.stopError.set('');
 
     this.planService.getJob(jobCode).subscribe({
       next: (job) => {

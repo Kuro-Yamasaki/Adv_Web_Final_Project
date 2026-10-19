@@ -1,3 +1,5 @@
+import { OrderStatus } from './order';
+
 // จุดส่ง 1 จุด (= ออเดอร์ 1 รายการ) ในเส้นทางของไรเดอร์
 export interface RouteStop {
   order_id: number;
@@ -11,6 +13,8 @@ export interface RouteStop {
   leg_km: number;
   // เวลาที่ไปถึงจุดนี้ รูปแบบ "HH:mm"
   arrive_at: string;
+  // สถานะออเดอร์ มีเฉพาะในใบงานไรเดอร์ (GET /plans/jobs/:jobCode)
+  status?: OrderStatus;
 }
 
 // งานของไรเดอร์ 1 คน
