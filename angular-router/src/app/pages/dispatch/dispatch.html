@@ -11,7 +11,7 @@
         <div class="header-actions">
             <button type="button" class="primary-button" [disabled]="loading() || orders().length === 0"
                 (click)="calculate()">
-                คำนวณเส้นทาง
+                {{ plan() ? 'คำนวณใหม่ตั้งแต่ต้น' : 'คำนวณเส้นทาง' }}
             </button>
 
             <button type="button" class="secondary-button" [disabled]="loading()" (click)="loadOrders()">
@@ -56,7 +56,61 @@
         </div>
     </dl>
 
+    <fieldset class="strategy-picker">
+        <legend>เป้าหมายในการจัดเส้นทาง</legend>
+
+        @for (option of strategyOptions; track option.value) {
+        <label class="strategy-option" [class.selected]="strategy() === option.value">
+            <input type="radio" name="strategy" [value]="option.value" [checked]="strategy() === option.value"
+                (change)="selectStrategy(option.value)" />
+            <span class="strategy-label">{{ option.label }}</span>
+            <span class="muted">{{ option.hint }}</span>
+        </label>
+        }
+    </fieldset>
+
     @if (plan(); as plan) {
+    <div class="plan-toolbar">
+        <p class="plan-title">
+            แผนที่ {{ variant() + 1 }}
+            <span class="muted">· ไม่พอใจเส้นทางนี้? ให้ระบบเสนอแบบอื่นได้</span>
+        </p>
+
+        <div class="header-actions">
+            <button type="button" class="primary-button" (click)="suggestAnother()">
+                เสนอเส้นทางอื่น
+            </button>
+
+            @if (previousPlan()) {
+            <button type="button" class="secondary-button" (click)="usePreviousPlan()">
+                กลับไปแผนก่อนหน้า
+            </button>
+            }
+        </div>
+    </div>
+
+    @if (notice()) {
+    <p class="notice" role="status">{{ notice() }}</p>
+    }
+
+    @if (comparison(); as diff) {
+    <div class="compare-box" role="status" aria-live="polite">
+        <strong>เทียบกับแผนก่อนหน้า:</strong>
+        <span [class.better]="diff.profit > 0.005" [class.worse]="diff.profit < -0.005">
+            กำไร {{ diff.profit > 0 ? '+' : '' }}{{ diff.profit | number: '1.2-2' }} บาท
+        </span>
+        <span [class.better]="diff.riders < 0" [class.worse]="diff.riders > 0">
+            ไรเดอร์ {{ diff.riders > 0 ? '+' : '' }}{{ diff.riders }} คน
+        </span>
+        <span [class.better]="diff.distance < -0.005" [class.worse]="diff.distance > 0.005">
+            ระยะทาง {{ diff.distance > 0 ? '+' : '' }}{{ diff.distance | number: '1.2-2' }} กม.
+        </span>
+        <span [class.better]="diff.minutes < 0" [class.worse]="diff.minutes > 0">
+            ส่งเสร็จ {{ diff.minutes > 0 ? '+' : '' }}{{ diff.minutes }} นาที
+        </span>
+    </div>
+    }
+
     <!-- พื้นที่แผนที่ จะใส่ component แผนที่เส้นทางภายหลัง -->
     <div class="map-placeholder" aria-hidden="true">แผนที่เส้นทาง</div>
 
