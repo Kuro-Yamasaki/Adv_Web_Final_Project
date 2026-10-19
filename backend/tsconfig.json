@@ -6,13 +6,16 @@
     "strict": true,
     "esModuleInterop": true,
     "outDir": "./dist",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "skipLibCheck": true
   },
   "include": [
     "*.ts",
     "controller/**/*.ts",
-    "model/**/*.ts"
+    "model/**/*.ts",
+    "service/**/*.ts"
   ],
   "exclude": [
     "node_modules",
