@@ -1,18 +1,84 @@
 <section class="rider-page">
     @if (job(); as job) {
-    <!-- ขั้นถัดไปจะแสดงรายละเอียดใบงานเต็มรูปแบบตรงนี้ -->
-    <header class="job-header">
-        <h1>ใบงาน {{ job.job_code }}</h1>
-        <p>ไรเดอร์คนที่ {{ job.rider_no }} · {{ job.stops.length }} จุดส่ง · {{ job.total_boxes }} กล่อง</p>
+    <header class="job-header" [style.border-left-color]="job.color">
+        <p class="eyebrow">ใบงาน {{ job.job_code }} · วันที่ {{ job.plan_date }}</p>
+        <h1>ไรเดอร์คนที่ {{ job.rider_no }}</h1>
     </header>
 
-    <button type="button" class="secondary-button full-width" (click)="clearJob()">
-        เปิดใบงานอื่น
-    </button>
+    @if (job.plan_status === 'draft') {
+    <p class="warning-box" role="status">
+        ร้านยังไม่ยืนยันแผนนี้ ลำดับการส่งอาจเปลี่ยน กด "โหลดใบงานใหม่" ก่อนออกจากร้าน
+    </p>
+    }
+
+    <div class="pickup-box">
+        <span>หยิบข้าวกล่องที่ร้านทั้งหมด</span>
+        <strong>{{ job.total_boxes }} กล่อง</strong>
+        <span>ส่ง {{ job.stops.length }} จุด · ออกจากร้าน {{ rules.departTime }} น.</span>
+    </div>
+
+    <ol class="stop-list">
+        @for (stop of job.stops; track stop.order_id; let i = $index) {
+        <li class="stop-card">
+            <div class="stop-head">
+                <span class="stop-no">จุดที่ {{ i + 1 }}</span>
+                <span class="stop-time">ถึงประมาณ {{ stop.arrive_at }} น.</span>
+            </div>
+
+            <p class="stop-name">คุณ{{ stop.customer_name }}</p>
+            <p class="stop-detail">
+                ส่ง <strong>{{ stop.box_quantity }} กล่อง</strong> ·
+                ห่างจาก{{ i === 0 ? 'ร้าน' : 'จุดก่อนหน้า' }} {{ stop.leg_km | number: '1.1-1' }} กม.
+            </p>
+
+            <div class="stop-actions">
+                <a class="primary-button" [href]="stopMapUrl(stop)" target="_blank" rel="noopener">
+                    นำทางไปจุดนี้
+                </a>
+                <a class="secondary-button" [href]="'tel:' + stop.phone">
+                    โทร {{ stop.phone }}
+                </a>
+            </div>
+        </li>
+        }
+    </ol>
+
+    <dl class="job-summary">
+        <div>
+            <dt>ส่งจุดสุดท้ายเสร็จประมาณ</dt>
+            <dd>{{ job.finish_at }} น.</dd>
+        </div>
+
+        <div>
+            <dt>ระยะทางทั้งรอบ</dt>
+            <dd>{{ job.distance_km | number: '1.1-1' }} กม.</dd>
+        </div>
+
+        <div>
+            <dt>ค่าส่งรอบนี้</dt>
+            <dd>{{ job.rider_fee | number: '1.2-2' }} บาท</dd>
+        </div>
+    </dl>
+
+    <div class="bottom-actions">
+        @if (job.stops.length > 0) {
+        <a class="primary-button full-width" [href]="fullRouteUrl(job)" target="_blank" rel="noopener">
+            เปิดเส้นทางทั้งรอบใน Google Maps
+        </a>
+        }
+
+        <button type="button" class="secondary-button full-width" [disabled]="loading()" (click)="reload()">
+            {{ loading() ? 'กำลังโหลด…' : 'โหลดใบงานใหม่' }}
+        </button>
+
+        <button type="button" class="secondary-button full-width" (click)="clearJob()">
+            เปิดใบงานอื่น
+        </button>
+    </div>
     } @else {
     <header class="job-header">
         <h1>ใบงานไรเดอร์</h1>
-        <p>กรอกเลขใบงานที่ได้รับจากร้าน เพื่อดูว่าต้องส่งที่ไหนบ้าง</p>
+        <p>กรอกเลขใบงานที่ได้รับจาก{{ shopName }} เพื่อดูว่าต้องส่งที่ไหนบ้าง</p>
     </header>
 
     <form class="job-form" [formGroup]="jobForm" (ngSubmit)="openJob()" novalidate>

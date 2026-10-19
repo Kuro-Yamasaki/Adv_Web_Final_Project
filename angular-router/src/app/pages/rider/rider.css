@@ -26,6 +26,144 @@ h1 {
   color: #595959;
 }
 
+/* แถบสีด้านซ้ายคือสีเส้นทางเดียวกับในหน้าจัดเส้นทาง */
+.job-header[style] {
+  padding-left: 14px;
+  border-left: 8px solid;
+}
+
+.job-header .eyebrow {
+  margin-bottom: 4px;
+  font-size: 16px;
+}
+
+/* กล่องสรุปจำนวนที่ต้องหยิบ */
+.pickup-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 20px;
+  padding: 18px 16px;
+  border-radius: 12px;
+  background: #1967b3;
+  color: white;
+  text-align: center;
+}
+
+.pickup-box strong {
+  font-size: 40px;
+  line-height: 1.2;
+}
+
+.pickup-box span:last-child {
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+/* รายการจุดส่ง */
+.stop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.stop-card {
+  padding: 16px;
+  border: 1px solid #e6e5e3;
+  border-radius: 12px;
+  background: #f9f8f7;
+}
+
+.stop-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.stop-no {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.stop-time {
+  color: #595959;
+  font-size: 16px;
+}
+
+.stop-name {
+  margin: 4px 0 2px;
+  font-size: 20px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.stop-detail {
+  margin: 0 0 12px;
+  color: #595959;
+}
+
+.stop-detail strong {
+  color: #2c2c2b;
+}
+
+.stop-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* สรุปท้ายใบงาน */
+.job-summary {
+  margin: 0 0 20px;
+  padding: 4px 16px;
+  border: 1px solid #e6e5e3;
+  border-radius: 12px;
+}
+
+.job-summary > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0efed;
+}
+
+.job-summary > div:last-child {
+  border-bottom: none;
+}
+
+.job-summary dt {
+  color: #595959;
+}
+
+.job-summary dd {
+  margin: 0;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bottom-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.warning-box {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: 1px solid #b7791f;
+  border-radius: 8px;
+  background: #fdf1dc;
+  color: #7a4b00;
+  font-size: 16px;
+}
+
 /* ฟอร์มกรอกเลขใบงาน */
 .job-form {
   display: flex;
@@ -69,15 +207,28 @@ h1 {
 }
 
 /* ปุ่ม */
+/* ใช้ได้ทั้ง <button> และลิงก์ <a> ที่ทำหน้าตาเป็นปุ่ม */
 .primary-button,
 .secondary-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 52px;
   padding: 12px 18px;
   border: 1px solid;
   border-radius: 8px;
   font: inherit;
   font-weight: 600;
+  text-align: center;
+  text-decoration: none;
   cursor: pointer;
+}
+
+a.primary-button:focus-visible,
+a.secondary-button:focus-visible {
+  outline: 3px solid #1967b3;
+  outline-offset: 3px;
 }
 
 .full-width {

@@ -24,6 +24,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/rider/rider').then((m) => m.Rider),
   },
   {
+    // ลิงก์ที่ส่งให้ไรเดอร์ เปิดใบงานได้เลยโดยไม่ต้องกรอกเลข
+    path: 'rider/:jobCode',
+    loadComponent: () => import('./pages/rider/rider').then((m) => m.Rider),
+  },
+  {
     path: '**',
     redirectTo: 'customers',
   },
