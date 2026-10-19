@@ -313,6 +313,9 @@ export class DispatchService {
     const longest = Math.max(0, ...routes.map((route) => route.duration_min));
 
     return {
+      // แผนที่เพิ่งคำนวณยังไม่ได้บันทึก จะได้ id จริงจาก backend ตอนบันทึก
+      id: 0,
+      status: 'draft',
       created_at: today.toISOString(),
       routes,
       cost,
