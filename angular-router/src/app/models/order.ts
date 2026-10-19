@@ -1,3 +1,5 @@
+export type OrderStatus = 'pending' | 'assigned' | 'delivered' | 'cancelled';
+
 export interface Order {
   id: number;
   customer_id: number;
@@ -6,6 +8,8 @@ export interface Order {
   phone: string;
   box_quantity: number;
   ordered_at: string;
+  delivery_date: string;
+  status: OrderStatus;
   // MySQL DECIMAL อาจถูกส่งมาเป็น string
   delivery_latitude: number | string;
   delivery_longitude: number | string;

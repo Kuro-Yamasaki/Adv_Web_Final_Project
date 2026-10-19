@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Order, OrderInput, SimulateOrdersResult } from '../models/order';
+import { Order, OrderInput, OrderStatus, SimulateOrdersResult } from '../models/order';
 
 @Injectable({
     providedIn: 'root',
@@ -12,8 +12,9 @@ export class OrderService {
     private readonly apiUrl =
         'https://adv-web-api.onrender.com/orders';
 
-    getAll(): Observable<Order[]> {
-        return this.http.get<Order[]>(this.apiUrl);
+    // กรองตามวันส่ง (YYYY-MM-DD) และ/หรือสถานะได้
+    getAll(filter: { date?: string; status?: OrderStatus } = {}): Observable<Order[]> {
+        return this.http.get<Order[]>(this.apiUrl, { params: { ...filter } });
     }
 
     create(

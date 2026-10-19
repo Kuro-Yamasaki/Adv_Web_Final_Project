@@ -1,0 +1,83 @@
+<section class="dispatch-page">
+    <header class="page-header">
+        <div>
+            <h1>จัดเส้นทางจัดส่ง</h1>
+            <p>
+                ออกจากร้าน {{ rules.departTime }} น. ต้องถึงลูกค้าทุกคนไม่เกิน {{ rules.deadlineTime }} น.
+                (ไรเดอร์รับไม่เกินคนละ {{ rules.maxOrdersPerRider }} ออเดอร์)
+            </p>
+        </div>
+
+        <div class="header-actions">
+            <button type="button" class="primary-button" [disabled]="loading() || orders().length === 0"
+                (click)="calculate()">
+                คำนวณเส้นทาง
+            </button>
+
+            <button type="button" class="secondary-button" [disabled]="loading()" (click)="loadOrders()">
+                {{ loading() ? 'กำลังโหลด…' : 'โหลดออเดอร์ใหม่' }}
+            </button>
+        </div>
+    </header>
+
+    @if (loading() && orders().length === 0) {
+    <div class="state-box" role="status" aria-live="polite">
+        <p>กำลังโหลดออเดอร์ของวันนี้…</p>
+        <small>หากบริการ Render กำลังเริ่มทำงาน อาจใช้เวลาสักครู่</small>
+    </div>
+    } @else if (errorMessage()) {
+    <div class="state-box error-box" role="alert">
+        <p>{{ errorMessage() }}</p>
+
+        <button type="button" class="primary-button" (click)="loadOrders()">
+            ลองอีกครั้ง
+        </button>
+    </div>
+    } @else if (orders().length === 0) {
+    <div class="state-box">
+        <p>วันนี้ยังไม่มีออเดอร์ที่รอจัดส่ง</p>
+        <a routerLink="/orders" class="text-link">ไปหน้าข้อมูลออเดอร์เพื่อเพิ่มหรือจำลองออเดอร์</a>
+    </div>
+    } @else {
+    <dl class="summary-grid">
+        <div class="summary-card">
+            <dt>ออเดอร์รอจัดส่ง</dt>
+            <dd>{{ orders().length }}</dd>
+        </div>
+
+        <div class="summary-card">
+            <dt>กล่องทั้งหมด</dt>
+            <dd>{{ totalBoxes() }}</dd>
+        </div>
+
+        <div class="summary-card">
+            <dt>ไรเดอร์ที่ใช้</dt>
+            <dd>{{ plan()?.routes?.length ?? '–' }}</dd>
+        </div>
+    </dl>
+
+    @if (plan(); as plan) {
+    <!-- พื้นที่แผนที่ จะใส่ component แผนที่เส้นทางภายหลัง -->
+    <div class="map-placeholder" aria-hidden="true">แผนที่เส้นทาง</div>
+
+    <ol class="rider-list">
+        @for (route of plan.routes; track route.job_code) {
+        <li class="rider-item">
+            <span class="color-dot" [style.background]="route.color"></span>
+            <strong>ไรเดอร์ {{ route.rider_no }}</strong>
+            <span class="muted">ใบงาน {{ route.job_code }}</span>
+            <span>
+                @for (stop of route.stops; track stop.order_id; let last = $last) {
+                {{ stop.customer_name }}@if (!last) { → }
+                }
+            </span>
+        </li>
+        }
+    </ol>
+    } @else {
+    <div class="state-box">
+        <p>กด "คำนวณเส้นทาง" เพื่อแบ่งออเดอร์ให้ไรเดอร์และจัดลำดับการส่ง</p>
+    </div>
+    }
+    }
+</section>
