@@ -417,6 +417,21 @@ tbody tr.late-row {
   color: white;
 }
 
+.badge-draft {
+  background: #fdf1dc;
+  color: #7a4b00;
+}
+
+.badge-confirmed {
+  background: #e8f1ec;
+  color: #245437;
+}
+
+.strategy-picker:disabled .strategy-option {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 @media (max-width: 600px) {
   .dispatch-page {
     padding: 24px 16px;
