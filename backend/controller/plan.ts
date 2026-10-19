@@ -151,6 +151,7 @@ router.post("/", async (req, res) => {
         result.latest_finish_at, result.late_count]);
     const planId = planResult.insertId;
 
+    const stopValues: (number | string)[] = [];
     for (const route of result.routes) {
       // สุ่มเลขใบงานใหม่ถ้าบังเอิญซ้ำ (โอกาสน้อยมาก)
       let routeId = 0;
@@ -169,12 +170,17 @@ router.post("/", async (req, res) => {
       }
       if (!routeId) throw new Error("Could not generate a unique job code");
 
-      for (const [index, stop] of route.stops.entries()) {
-        await connection.execute(
-          "INSERT INTO plan_stop (route_id, seq, order_id, leg_km, arrive_at) VALUES (?, ?, ?, ?, ?)",
-          [routeId, index + 1, stop.order_id, stop.leg_km, stop.arrive_at]);
-      }
+      route.stops.forEach((stop, index) => {
+        stopValues.push(routeId, index + 1, stop.order_id, stop.leg_km, stop.arrive_at);
+      });
     }
+
+    // บันทึกจุดส่งทุกจุดในคำสั่งเดียว (เร็วกว่าส่งทีละแถวมาก เพราะฐานข้อมูลอยู่ไกล)
+    const stopCount = stopValues.length / 5;
+    await connection.execute(
+      `INSERT INTO plan_stop (route_id, seq, order_id, leg_km, arrive_at)
+       VALUES ${Array(stopCount).fill("(?, ?, ?, ?, ?)").join(", ")}`,
+      stopValues);
 
     await connection.commit();
     res.status(201).json(await loadPlan(conn, planId));
@@ -218,7 +224,7 @@ router.get("/jobs/:code", async (req, res) => {
   const r = routes[0];
 
   const [stops] = await conn.execute<RowDataPacket[]>(`
-    SELECT s.order_id, s.leg_km, s.arrive_at,
+    SELECT s.order_id, s.leg_km, s.arrive_at, o.status,
            o.customer_id, o.box_quantity, o.delivery_latitude, o.delivery_longitude,
            c.first_name, c.last_name, c.phone
     FROM plan_stop AS s
@@ -244,6 +250,7 @@ router.get("/jobs/:code", async (req, res) => {
       longitude: s.delivery_longitude,
       leg_km: s.leg_km,
       arrive_at: hhmm(s.arrive_at),
+      status: s.status,
     })),
     total_boxes: r.total_boxes,
     distance_km: r.distance_km,
@@ -252,6 +259,38 @@ router.get("/jobs/:code", async (req, res) => {
     rider_fee: r.rider_fee,
     late: Boolean(r.late),
   });
+});
+
+// ไรเดอร์กด "ส่งแล้ว" ทีละจุด
+// POST /plans/jobs/K7QM2XPA/stops/130/delivered (ใช้ได้เฉพาะแผนที่ยืนยันแล้ว)
+router.post("/jobs/:code/stops/:orderId/delivered", async (req, res) => {
+  const code = String(req.params.code).trim().toUpperCase();
+  const orderId = Number(req.params.orderId);
+  if (!/^[A-Z0-9]{4,12}$/.test(code) || !Number.isSafeInteger(orderId) || orderId < 1) {
+    res.status(404).json({ error: "Job or stop not found" }); return;
+  }
+
+  const [rows] = await conn.execute<RowDataPacket[]>(`
+    SELECT o.status, p.status AS plan_status
+    FROM plan_stop AS s
+    INNER JOIN plan_route AS r ON s.route_id = r.id
+    INNER JOIN delivery_plan AS p ON r.plan_id = p.id
+    INNER JOIN orders AS o ON s.order_id = o.id
+    WHERE r.job_code = ? AND s.order_id = ?`, [code, orderId]);
+  if (rows.length === 0) { res.status(404).json({ error: "Job or stop not found" }); return; }
+  if (rows[0].plan_status !== "confirmed") {
+    res.status(409).json({ error: "Plan is not confirmed yet" }); return;
+  }
+  if (rows[0].status === "delivered") {
+    res.json({ order_id: orderId, status: "delivered" }); return;
+  }
+
+  const [result] = await conn.execute<ResultSetHeader>(
+    "UPDATE orders SET status = 'delivered' WHERE id = ? AND status = 'assigned'", [orderId]);
+  if (result.affectedRows === 0) {
+    res.status(409).json({ error: `Order is ${rows[0].status}, cannot mark as delivered` }); return;
+  }
+  res.json({ order_id: orderId, status: "delivered" });
 });
 
 router.param("id", (_req, res, next, id: string) => {

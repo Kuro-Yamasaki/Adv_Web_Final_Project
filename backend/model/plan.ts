@@ -11,6 +11,7 @@ export interface RouteStop {
   longitude: number;
   leg_km: number;      // ระยะจากจุดก่อนหน้า (จุดแรกนับจากร้าน) กม.
   arrive_at: string;   // เวลาที่ไปถึง "HH:mm"
+  status?: "pending" | "assigned" | "delivered" | "cancelled"; // มีเฉพาะในใบงานไรเดอร์
 }
 
 // งานของไรเดอร์ 1 คน
