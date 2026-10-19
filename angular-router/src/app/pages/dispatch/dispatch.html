@@ -9,31 +9,37 @@
         </div>
 
         <div class="header-actions">
-            <button type="button" class="primary-button" [disabled]="loading() || orders().length === 0"
+            @if (!confirmed()) {
+            <button type="button" class="primary-button" [disabled]="busy() || orders().length === 0"
                 (click)="calculate()">
-                {{ plan() ? 'คำนวณใหม่ตั้งแต่ต้น' : 'คำนวณเส้นทาง' }}
+                {{ working() ? 'กำลังคำนวณ…' : plan() ? 'คำนวณใหม่ตั้งแต่ต้น' : 'คำนวณเส้นทาง' }}
             </button>
+            }
 
-            <button type="button" class="secondary-button" [disabled]="loading()" (click)="loadOrders()">
-                {{ loading() ? 'กำลังโหลด…' : 'โหลดออเดอร์ใหม่' }}
+            <button type="button" class="secondary-button" [disabled]="busy()" (click)="refresh()">
+                {{ loading() ? 'กำลังโหลด…' : 'โหลดข้อมูลใหม่' }}
             </button>
         </div>
     </header>
 
-    @if (loading() && orders().length === 0) {
+    @if (actionError()) {
+    <p class="alert alert-danger" role="alert">{{ actionError() }}</p>
+    }
+
+    @if (loading() && !plan()) {
     <div class="state-box" role="status" aria-live="polite">
-        <p>กำลังโหลดออเดอร์ของวันนี้…</p>
+        <p>กำลังโหลดออเดอร์และแผนของวันนี้…</p>
         <small>หากบริการ Render กำลังเริ่มทำงาน อาจใช้เวลาสักครู่</small>
     </div>
     } @else if (errorMessage()) {
     <div class="state-box error-box" role="alert">
         <p>{{ errorMessage() }}</p>
 
-        <button type="button" class="primary-button" (click)="loadOrders()">
+        <button type="button" class="primary-button" (click)="refresh()">
             ลองอีกครั้ง
         </button>
     </div>
-    } @else if (orders().length === 0) {
+    } @else if (orders().length === 0 && !plan()) {
     <div class="state-box">
         <p>วันนี้ยังไม่มีออเดอร์ที่รอจัดส่ง</p>
         <a routerLink="/orders" class="text-link">ไปหน้าข้อมูลออเดอร์เพื่อเพิ่มหรือจำลองออเดอร์</a>
@@ -56,7 +62,8 @@
         </div>
     </dl>
 
-    <fieldset class="strategy-picker">
+    @if (!confirmed()) {
+    <fieldset class="strategy-picker" [disabled]="busy()">
         <legend>เป้าหมายในการจัดเส้นทาง</legend>
 
         @for (option of strategyOptions; track option.value) {
@@ -68,26 +75,40 @@
         </label>
         }
     </fieldset>
+    }
 
     @if (plan(); as plan) {
     <div class="plan-toolbar">
         <p class="plan-title">
             แผนที่ {{ variant() + 1 }}
+            @if (confirmed()) {
+            <span class="badge badge-confirmed">ยืนยันแล้ว</span>
+            } @else {
+            <span class="badge badge-draft">ร่าง</span>
             <span class="muted">· ไม่พอใจเส้นทางนี้? ให้ระบบเสนอแบบอื่นได้</span>
+            }
         </p>
 
+        @if (!confirmed()) {
         <div class="header-actions">
-            <button type="button" class="primary-button" (click)="suggestAnother()">
-                เสนอเส้นทางอื่น
+            <button type="button" class="primary-button" [disabled]="busy()" (click)="suggestAnother()">
+                {{ working() ? 'กำลังคำนวณ…' : 'เสนอเส้นทางอื่น' }}
             </button>
 
-            @if (previousPlan()) {
-            <button type="button" class="secondary-button" (click)="usePreviousPlan()">
+            @if (previous()) {
+            <button type="button" class="secondary-button" [disabled]="busy()" (click)="usePreviousPlan()">
                 กลับไปแผนก่อนหน้า
             </button>
             }
         </div>
+        }
     </div>
+
+    @if (outdated()) {
+    <p class="alert alert-warning" role="alert">
+        ออเดอร์มีการเปลี่ยนแปลงหลังคำนวณแผนนี้ กรุณากด "คำนวณใหม่ตั้งแต่ต้น"
+    </p>
+    }
 
     @if (notice()) {
     <p class="notice" role="status">{{ notice() }}</p>

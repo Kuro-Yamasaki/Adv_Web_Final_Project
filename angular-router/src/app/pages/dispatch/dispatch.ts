@@ -2,10 +2,11 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { DeliveryPlan } from '../../models/delivery-plan';
+import { map, of, switchMap } from 'rxjs';
+import { DeliveryPlan, PlanStrategy } from '../../models/delivery-plan';
 import { Order } from '../../models/order';
-import { DispatchService, PlanStrategy } from '../../services/dispatch.service';
 import { OrderService } from '../../services/order.service';
+import { PlanService } from '../../services/plan.service';
 import { DELIVERY_RULES } from '../../shop.config';
 
 // วันที่วันนี้ตามเวลาไทย รูปแบบ YYYY-MM-DD (ตรงกับ delivery_date ที่ backend บันทึก)
@@ -18,7 +19,7 @@ function toMinutes(time: string): number {
   return hours * 60 + minutes;
 }
 
-// ลายเซ็นของแผน ใช้เช็กว่าแผนใหม่ต่างจากแผนเดิมจริงหรือไม่
+// ลายเซ็นของแผน ใช้เช็กว่าแผนใหม่ต่างจากแผนเดิมจริงหรือไม่ (ไม่นับเลขใบงาน เพราะสุ่มใหม่ทุกครั้ง)
 function planKey(plan: DeliveryPlan): string {
   return plan.routes
     .map((route) => route.stops.map((stop) => stop.order_id).join('>'))
@@ -26,14 +27,41 @@ function planKey(plan: DeliveryPlan): string {
     .join('|');
 }
 
-// จำนวน variant ที่ลองได้สูงสุดต่อการกด "เสนอเส้นทางอื่น" 1 ครั้ง
-const MAX_TRIES = 20;
+function describeError(error: HttpErrorResponse): string {
+  if (error.status === 0) {
+    return 'ติดต่อ API ไม่ได้ กรุณาตรวจอินเทอร์เน็ตหรือ CORS';
+  }
+
+  const detail = error.error?.error;
+
+  if (detail === 'This date already has a confirmed plan') {
+    return 'วันนี้ยืนยันแผนไปแล้ว คำนวณใหม่ไม่ได้';
+  }
+
+  if (detail === 'No pending orders for this date') {
+    return 'วันนี้ไม่มีออเดอร์ที่รอจัดส่ง';
+  }
+
+  return typeof detail === 'string'
+    ? `ทำรายการไม่สำเร็จ (HTTP ${error.status}): ${detail}`
+    : `ทำรายการไม่สำเร็จ (HTTP ${error.status}) กรุณาลองใหม่`;
+}
+
+// จำนวน variant ที่ลองได้สูงสุดต่อการกด "เสนอเส้นทางอื่น" 1 ครั้ง (ลองทีละคำขอ)
+const MAX_TRIES = 5;
 
 const STRATEGY_OPTIONS: { value: PlanStrategy; label: string; hint: string }[] = [
   { value: 'min-cost', label: 'ค่าส่งถูกที่สุด', hint: 'กำไรมากที่สุด' },
   { value: 'min-distance', label: 'ระยะทางสั้นที่สุด', hint: 'ประหยัดน้ำมัน' },
   { value: 'min-riders', label: 'ใช้ไรเดอร์น้อยที่สุด', hint: 'เรียกรถน้อยคัน' },
 ];
+
+// แผน 1 แผนพร้อมค่าที่ใช้คำนวณ เพื่อขอแผนเดิมจาก backend ซ้ำได้
+interface PlanState {
+  plan: DeliveryPlan;
+  strategy: PlanStrategy;
+  variant: number;
+}
 
 @Component({
   selector: 'app-dispatch',
@@ -44,7 +72,7 @@ const STRATEGY_OPTIONS: { value: PlanStrategy; label: string; hint: string }[] =
 })
 export class Dispatch implements OnInit {
   private readonly orderService = inject(OrderService);
-  private readonly dispatchService = inject(DispatchService);
+  private readonly planService = inject(PlanService);
 
   readonly rules = DELIVERY_RULES;
   readonly today = todayBangkok();
@@ -55,17 +83,40 @@ export class Dispatch implements OnInit {
 
   readonly strategyOptions = STRATEGY_OPTIONS;
   readonly strategy = signal<PlanStrategy>('min-cost');
-  readonly variant = signal(0);
 
-  readonly plan = signal<DeliveryPlan | null>(null);
+  readonly current = signal<PlanState | null>(null);
   // แผนก่อนกด "เสนอเส้นทางอื่น" หรือเปลี่ยนเป้าหมาย ใช้เทียบและย้อนกลับ
-  readonly previousPlan = signal<DeliveryPlan | null>(null);
+  readonly previous = signal<PlanState | null>(null);
+
+  // คำขอคำนวณ/ยืนยันทำได้ทีละรายการ
+  readonly working = signal(false);
+  readonly actionError = signal('');
   readonly notice = signal('');
+
+  readonly plan = computed(() => this.current()?.plan ?? null);
+  readonly variant = computed(() => this.current()?.variant ?? 0);
+  readonly confirmed = computed(() => this.plan()?.status === 'confirmed');
+  readonly busy = computed(() => this.loading() || this.working());
+
+  readonly totalBoxes = computed(() =>
+    this.orders().reduce((sum, order) => sum + order.box_quantity, 0),
+  );
+
+  // แผนร่างที่ไม่ตรงกับออเดอร์ปัจจุบัน (มีการเพิ่ม/ลบ/แก้ออเดอร์หลังคำนวณ)
+  readonly outdated = computed(() => {
+    const plan = this.plan();
+    return (
+      plan !== null &&
+      plan.status === 'draft' &&
+      (plan.total_boxes !== this.totalBoxes() ||
+        plan.routes.reduce((sum, route) => sum + route.stops.length, 0) !== this.orders().length)
+    );
+  });
 
   // ผลต่างของแผนปัจจุบันเทียบกับแผนก่อนหน้า (ค่าบวก = แผนใหม่มากกว่า)
   readonly comparison = computed(() => {
     const plan = this.plan();
-    const previous = this.previousPlan();
+    const previous = this.previous()?.plan;
     if (!plan || !previous) {
       return null;
     }
@@ -77,10 +128,6 @@ export class Dispatch implements OnInit {
       minutes: toMinutes(plan.latest_finish_at) - toMinutes(previous.latest_finish_at),
     };
   });
-
-  readonly totalBoxes = computed(() =>
-    this.orders().reduce((sum, order) => sum + order.box_quantity, 0),
-  );
 
   // เวลาที่ใช้ส่งจนเสร็จทุกคน และเวลาที่ยังเหลือก่อนเส้นตาย (นาที)
   readonly usedMinutes = computed(() => {
@@ -99,99 +146,150 @@ export class Dispatch implements OnInit {
   });
 
   ngOnInit(): void {
-    this.loadOrders();
+    this.refresh();
   }
 
-  // โหลดเฉพาะออเดอร์ของวันนี้ที่ยังไม่ได้แจกให้ไรเดอร์
-  loadOrders(): void {
+  // โหลดออเดอร์ที่รอส่งของวันนี้ และแผนที่บันทึกไว้แล้ว (ถ้ามี)
+  refresh(): void {
     if (this.loading()) {
       return;
     }
 
     this.loading.set(true);
     this.errorMessage.set('');
-    this.plan.set(null);
-    this.previousPlan.set(null);
+    this.actionError.set('');
     this.notice.set('');
+    this.previous.set(null);
+
+    let pending = 2;
+    const done = () => {
+      pending--;
+      if (pending === 0) this.loading.set(false);
+    };
+    const fail = (error: HttpErrorResponse) => {
+      this.errorMessage.set(describeError(error));
+      done();
+    };
 
     this.orderService.getAll({ date: this.today, status: 'pending' }).subscribe({
       next: (data) => {
         this.orders.set(data);
-        this.loading.set(false);
+        done();
       },
-
-      error: (error: HttpErrorResponse) => {
-        this.errorMessage.set(
-          error.status === 0
-            ? 'ติดต่อ API ไม่ได้ กรุณาตรวจอินเทอร์เน็ตหรือ CORS'
-            : `โหลดข้อมูลไม่สำเร็จ (HTTP ${error.status}) กรุณาลองใหม่`,
-        );
-        this.loading.set(false);
-      },
+      error: fail,
     });
+
+    // backend เรียงแผนที่ยืนยันแล้วไว้ก่อน ตามด้วย draft ล่าสุด
+    this.planService
+      .list(this.today)
+      .pipe(
+        switchMap((plans) =>
+          plans.length
+            ? this.planService
+                .get(plans[0].id)
+                .pipe(map((plan) => ({ plan, variant: plans[0].variant })))
+            : of(null),
+        ),
+      )
+      .subscribe({
+        next: (saved) => {
+          // backend ไม่ได้เก็บเป้าหมายของแผน จึงถือว่าเป็นเป้าหมายที่เลือกอยู่
+          this.current.set(saved ? { ...saved, strategy: this.strategy() } : null);
+          done();
+        },
+        error: fail,
+      });
   }
 
   // คำนวณใหม่ตั้งแต่ต้นด้วยเป้าหมายที่เลือกอยู่
   calculate(): void {
-    this.previousPlan.set(null);
-    this.variant.set(0);
-    this.plan.set(this.runPlan(0));
+    this.request(this.strategy(), 0, () => this.previous.set(null));
   }
 
-  // เปลี่ยนเป้าหมาย ถ้ามีแผนอยู่แล้วให้คำนวณใหม่ทันทีและเก็บแผนเดิมไว้เทียบ
+  // เปลี่ยนเป้าหมาย ถ้ามีแผนร่างอยู่แล้วให้คำนวณใหม่ทันทีและเก็บแผนเดิมไว้เทียบ
   selectStrategy(strategy: PlanStrategy): void {
     if (strategy === this.strategy()) {
       return;
     }
 
     this.strategy.set(strategy);
-    const current = this.plan();
-    if (current) {
-      this.previousPlan.set(current);
-      this.variant.set(0);
-      this.plan.set(this.runPlan(0));
+    const current = this.current();
+    if (current && !this.confirmed()) {
+      this.request(strategy, 0, () => this.previous.set(current));
     }
   }
 
-  // เสนอแผนอื่น ถ้า variant ถัดไปได้แผนเดิมซ้ำ ให้ลองต่อจนได้แผนที่ต่าง
+  // เสนอแผนอื่น ถ้า variant ถัดไปได้แผนเดิมซ้ำ ให้ลองต่ออีกไม่เกิน MAX_TRIES ครั้ง
   suggestAnother(): void {
-    const current = this.plan();
-    if (!current) {
+    const current = this.current();
+    if (!current || this.working()) {
       return;
     }
 
-    const currentKey = planKey(current);
-    let variant = this.variant();
-    let next = current;
-
-    for (let tries = 0; tries < MAX_TRIES && planKey(next) === currentKey; tries++) {
-      variant++;
-      next = this.runPlan(variant);
-    }
-
-    this.variant.set(variant);
-    if (planKey(next) === currentKey) {
-      this.notice.set('ไม่พบเส้นทางแบบอื่นที่ต่างจากเดิม แผนนี้น่าจะดีที่สุดแล้วสำหรับเป้าหมายนี้');
-      return;
-    }
-
-    this.previousPlan.set(current);
-    this.plan.set(next);
-  }
-
-  // กลับไปใช้แผนก่อนหน้า (สลับกับแผนปัจจุบัน จะได้กดกลับไปกลับมาได้)
-  usePreviousPlan(): void {
-    const previous = this.previousPlan();
-    if (!previous) {
-      return;
-    }
-
-    this.previousPlan.set(this.plan());
-    this.plan.set(previous);
-  }
-
-  private runPlan(variant: number): DeliveryPlan {
+    const currentKey = planKey(current.plan);
+    this.working.set(true);
+    this.actionError.set('');
     this.notice.set('');
-    return this.dispatchService.plan(this.orders(), { strategy: this.strategy(), variant });
+
+    const attempt = (variant: number, triesLeft: number) => {
+      this.planService.calculate(current.strategy, variant, this.today).subscribe({
+        next: (plan) => {
+          if (planKey(plan) !== currentKey) {
+            this.previous.set(current);
+            this.current.set({ plan, strategy: current.strategy, variant });
+            this.working.set(false);
+          } else if (triesLeft > 1) {
+            attempt(variant + 1, triesLeft - 1);
+          } else {
+            // backend บันทึกแผนล่าสุดทับไปแล้ว แต่เส้นทางเหมือนเดิม จึงใช้แผนนี้แทน (เลขใบงานใหม่)
+            this.current.set({ plan, strategy: current.strategy, variant });
+            this.notice.set('ไม่พบเส้นทางแบบอื่นที่ต่างจากเดิม แผนนี้น่าจะดีที่สุดแล้วสำหรับเป้าหมายนี้');
+            this.working.set(false);
+          }
+        },
+        error: (error: HttpErrorResponse) => {
+          this.actionError.set(describeError(error));
+          this.working.set(false);
+        },
+      });
+    };
+
+    attempt(current.variant + 1, MAX_TRIES);
+  }
+
+  // กลับไปใช้แผนก่อนหน้า backend เก็บแค่ร่างล่าสุด จึงต้องขอคำนวณแผนนั้นซ้ำ (ได้เส้นทางเดิม)
+  usePreviousPlan(): void {
+    const previous = this.previous();
+    const current = this.current();
+    if (!previous || !current) {
+      return;
+    }
+
+    this.request(previous.strategy, previous.variant, () => {
+      this.previous.set(current);
+      this.strategy.set(previous.strategy);
+    });
+  }
+
+  private request(strategy: PlanStrategy, variant: number, onSuccess: () => void): void {
+    if (this.working()) {
+      return;
+    }
+
+    this.working.set(true);
+    this.actionError.set('');
+    this.notice.set('');
+
+    this.planService.calculate(strategy, variant, this.today).subscribe({
+      next: (plan) => {
+        onSuccess();
+        this.current.set({ plan, strategy, variant });
+        this.working.set(false);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.actionError.set(describeError(error));
+        this.working.set(false);
+      },
+    });
   }
 }
