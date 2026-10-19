@@ -1,0 +1,40 @@
+<section class="rider-page">
+    @if (job(); as job) {
+    <!-- ขั้นถัดไปจะแสดงรายละเอียดใบงานเต็มรูปแบบตรงนี้ -->
+    <header class="job-header">
+        <h1>ใบงาน {{ job.job_code }}</h1>
+        <p>ไรเดอร์คนที่ {{ job.rider_no }} · {{ job.stops.length }} จุดส่ง · {{ job.total_boxes }} กล่อง</p>
+    </header>
+
+    <button type="button" class="secondary-button full-width" (click)="clearJob()">
+        เปิดใบงานอื่น
+    </button>
+    } @else {
+    <header class="job-header">
+        <h1>ใบงานไรเดอร์</h1>
+        <p>กรอกเลขใบงานที่ได้รับจากร้าน เพื่อดูว่าต้องส่งที่ไหนบ้าง</p>
+    </header>
+
+    <form class="job-form" [formGroup]="jobForm" (ngSubmit)="openJob()" novalidate>
+        <label for="job-code">เลขใบงาน</label>
+        <input id="job-code" type="text" formControlName="jobCode" placeholder="เช่น 20261019-1"
+            autocomplete="off" autocapitalize="off" spellcheck="false"
+            [attr.aria-invalid]="jobForm.controls.jobCode.invalid && jobForm.controls.jobCode.touched"
+            aria-describedby="job-code-error" />
+
+        @if (jobForm.controls.jobCode.invalid && jobForm.controls.jobCode.touched) {
+        <p id="job-code-error" class="field-error">
+            กรุณากรอกเลขใบงาน (ตัวอักษร ตัวเลข หรือ - เท่านั้น)
+        </p>
+        }
+
+        <button type="submit" class="primary-button full-width" [disabled]="loading()">
+            {{ loading() ? 'กำลังเปิดใบงาน…' : 'ดูใบงาน' }}
+        </button>
+    </form>
+
+    @if (errorMessage()) {
+    <p class="error-box" role="alert">{{ errorMessage() }}</p>
+    }
+    }
+</section>

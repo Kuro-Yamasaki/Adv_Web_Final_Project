@@ -1,0 +1,124 @@
+/* หน้านี้ไรเดอร์เปิดบนมือถือเป็นหลัก ตัวหนังสือและปุ่มจึงใหญ่กว่าหน้าอื่น */
+:host {
+  display: block;
+  color: #2c2c2b;
+  font-size: 18px;
+}
+
+.rider-page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.job-header {
+  margin-bottom: 20px;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.job-header p {
+  margin: 0;
+  color: #595959;
+}
+
+/* ฟอร์มกรอกเลขใบงาน */
+.job-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.job-form label {
+  font-weight: 600;
+}
+
+.job-form input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 14px;
+  border: 1px solid #767676;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 20px;
+  letter-spacing: 0.5px;
+}
+
+.job-form input:focus-visible {
+  outline: 2px solid #1967b3;
+  outline-offset: 2px;
+}
+
+.job-form input[aria-invalid='true'] {
+  border-color: #bd3b30;
+}
+
+.field-error {
+  margin: 0;
+  color: #9c2b23;
+  font-size: 16px;
+}
+
+.job-form .primary-button {
+  margin-top: 8px;
+}
+
+/* ปุ่ม */
+.primary-button,
+.secondary-button {
+  min-height: 52px;
+  padding: 12px 18px;
+  border: 1px solid;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.primary-button {
+  border-color: #1967b3;
+  background: #1967b3;
+  color: white;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: #145491;
+}
+
+.secondary-button {
+  border-color: #767676;
+  background: white;
+  color: #2c2c2b;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: #f0efed;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button:focus-visible {
+  outline: 3px solid #1967b3;
+  outline-offset: 3px;
+}
+
+.error-box {
+  margin: 20px 0 0;
+  padding: 14px 16px;
+  border: 1px solid #bd3b30;
+  border-radius: 8px;
+  background: #fff5f4;
+  color: #9c2b23;
+}

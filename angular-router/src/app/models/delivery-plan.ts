@@ -49,3 +49,11 @@ export interface DeliveryPlan {
   latest_finish_at: string;
   late_count: number;
 }
+
+// ใบงานที่ไรเดอร์เปิดดูด้วยเลขใบงาน (GET /plans/jobs/:jobCode)
+export interface RiderJob extends RiderRoute {
+  plan_id: number;
+  // วันที่ส่ง รูปแบบ YYYY-MM-DD
+  plan_date: string;
+  plan_status: DeliveryPlan['status'];
+}

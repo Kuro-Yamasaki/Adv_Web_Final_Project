@@ -20,6 +20,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/dispatch/dispatch').then((m) => m.Dispatch),
   },
   {
+    path: 'rider',
+    loadComponent: () => import('./pages/rider/rider').then((m) => m.Rider),
+  },
+  {
     path: '**',
     redirectTo: 'customers',
   },
