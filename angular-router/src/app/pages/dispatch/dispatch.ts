@@ -1,5 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { DeliveryPlan } from '../../models/delivery-plan';
 import { Order } from '../../models/order';
@@ -12,10 +13,15 @@ function todayBangkok(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date());
 }
 
+function toMinutes(time: string): number {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
 @Component({
   selector: 'app-dispatch',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, DecimalPipe],
   templateUrl: './dispatch.html',
   styleUrl: './dispatch.css',
 })
@@ -35,6 +41,22 @@ export class Dispatch implements OnInit {
   readonly totalBoxes = computed(() =>
     this.orders().reduce((sum, order) => sum + order.box_quantity, 0),
   );
+
+  // เวลาที่ใช้ส่งจนเสร็จทุกคน และเวลาที่ยังเหลือก่อนเส้นตาย (นาที)
+  readonly usedMinutes = computed(() => {
+    const plan = this.plan();
+    return plan ? toMinutes(plan.latest_finish_at) - toMinutes(this.rules.departTime) : 0;
+  });
+  readonly spareMinutes = computed(() => {
+    const plan = this.plan();
+    return plan ? toMinutes(this.rules.deadlineTime) - toMinutes(plan.latest_finish_at) : 0;
+  });
+
+  // กำไรเฉลี่ยต่อกล่องหลังหักค่าอาหารและค่าไรเดอร์
+  readonly profitPerBox = computed(() => {
+    const plan = this.plan();
+    return plan && plan.total_boxes > 0 ? plan.cost.profit / plan.total_boxes : 0;
+  });
 
   ngOnInit(): void {
     this.loadOrders();

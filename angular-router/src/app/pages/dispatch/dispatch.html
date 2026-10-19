@@ -60,20 +60,128 @@
     <!-- พื้นที่แผนที่ จะใส่ component แผนที่เส้นทางภายหลัง -->
     <div class="map-placeholder" aria-hidden="true">แผนที่เส้นทาง</div>
 
-    <ol class="rider-list">
-        @for (route of plan.routes; track route.job_code) {
-        <li class="rider-item">
-            <span class="color-dot" [style.background]="route.color"></span>
-            <strong>ไรเดอร์ {{ route.rider_no }}</strong>
-            <span class="muted">ใบงาน {{ route.job_code }}</span>
-            <span>
-                @for (stop of route.stops; track stop.order_id; let last = $last) {
-                {{ stop.customer_name }}@if (!last) { → }
+    @if (plan.cost.profit < 0) {
+    <div class="alert alert-danger" role="alert">
+        แผนนี้ขาดทุน {{ -plan.cost.profit | number: '1.2-2' }} บาท ลองคำนวณเส้นทางใหม่
+    </div>
+    }
+
+    @if (plan.late_count > 0) {
+    <div class="alert alert-warning" role="alert">
+        มีไรเดอร์ {{ plan.late_count }} คนส่งไม่ทัน {{ rules.deadlineTime }} น. (แถวที่ขึ้นป้าย "เลท" ในตาราง)
+    </div>
+    }
+
+    <div class="panel-grid">
+        <section class="panel" aria-labelledby="cost-title">
+            <h2 id="cost-title">ค่าใช้จ่ายและกำไร</h2>
+
+            <dl class="figure-list">
+                <div>
+                    <dt>รายได้ ({{ plan.total_boxes }} กล่อง × {{ rules.pricePerBox }} บาท)</dt>
+                    <dd>{{ plan.cost.revenue | number: '1.2-2' }}</dd>
+                </div>
+
+                <div>
+                    <dt>ต้นทุนอาหาร ({{ plan.total_boxes }} กล่อง × {{ rules.foodCostPerBox }} บาท)</dt>
+                    <dd>−{{ plan.cost.food_cost | number: '1.2-2' }}</dd>
+                </div>
+
+                <div>
+                    <dt>ค่าไรเดอร์ ({{ plan.routes.length }} คน)</dt>
+                    <dd>−{{ plan.cost.rider_fee | number: '1.2-2' }}</dd>
+                </div>
+
+                <div class="figure-total" [class.is-loss]="plan.cost.profit < 0">
+                    <dt>{{ plan.cost.profit < 0 ? 'ขาดทุนสุทธิ' : 'กำไรสุทธิ' }}</dt>
+                    <dd>{{ plan.cost.profit | number: '1.2-2' }} บาท</dd>
+                </div>
+            </dl>
+
+            <p class="panel-note">
+                เฉลี่ยกำไร {{ profitPerBox() | number: '1.2-2' }} บาท/กล่อง ·
+                ค่าไรเดอร์ = {{ rules.riderBaseFee }} บาท/รอบ + {{ rules.riderPerKmPerBox }} บาท × กม. × กล่อง
+            </p>
+        </section>
+
+        <section class="panel" aria-labelledby="time-title">
+            <h2 id="time-title">เวลาจัดส่ง</h2>
+
+            <dl class="figure-list">
+                <div>
+                    <dt>ออกจากร้าน</dt>
+                    <dd>{{ rules.departTime }} น.</dd>
+                </div>
+
+                <div>
+                    <dt>ส่งเสร็จคนสุดท้าย</dt>
+                    <dd>{{ plan.latest_finish_at }} น. ({{ usedMinutes() }} นาที)</dd>
+                </div>
+
+                <div>
+                    <dt>ระยะทางรวมทุกคัน</dt>
+                    <dd>{{ plan.total_distance_km | number: '1.2-2' }} กม.</dd>
+                </div>
+
+                <div class="figure-total" [class.is-loss]="spareMinutes() < 0">
+                    <dt>{{ spareMinutes() < 0 ? 'เกินเส้นตาย' : 'เหลือเวลาก่อน ' + rules.deadlineTime + ' น.' }}</dt>
+                    <dd>{{ spareMinutes() < 0 ? -spareMinutes() : spareMinutes() }} นาที</dd>
+                </div>
+            </dl>
+
+            <p class="panel-note">ความเร็วเฉลี่ย {{ rules.riderSpeedKmh }} กม./ชม. วัดระยะเป็นเส้นตรงจากพิกัด</p>
+        </section>
+    </div>
+
+    <h2 class="section-title">งานของไรเดอร์แต่ละคน</h2>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col">ไรเดอร์</th>
+                    <th scope="col">ลำดับจุดส่ง</th>
+                    <th scope="col" class="num">กล่อง</th>
+                    <th scope="col" class="num">ระยะทาง</th>
+                    <th scope="col">ส่งเสร็จ</th>
+                    <th scope="col" class="num">ค่าส่ง (บาท)</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @for (route of plan.routes; track route.job_code) {
+                <tr [class.late-row]="route.late">
+                    <td class="rider-cell" [style.border-left-color]="route.color">
+                        <strong>ไรเดอร์ {{ route.rider_no }}</strong>
+                        <span class="muted">ใบงาน {{ route.job_code }}</span>
+                    </td>
+
+                    <td>
+                        <ol class="stop-list">
+                            @for (stop of route.stops; track stop.order_id) {
+                            <li>
+                                <span class="stop-time">{{ stop.arrive_at }}</span>
+                                {{ stop.customer_name }}
+                                <span class="muted">({{ stop.box_quantity }} กล่อง, +{{ stop.leg_km | number: '1.2-2' }} กม.)</span>
+                            </li>
+                            }
+                        </ol>
+                    </td>
+
+                    <td class="num">{{ route.total_boxes }}</td>
+                    <td class="num">{{ route.distance_km | number: '1.2-2' }} กม.</td>
+                    <td>
+                        {{ route.finish_at }} น.
+                        @if (route.late) {
+                        <span class="badge badge-late">เลท</span>
+                        }
+                    </td>
+                    <td class="num">{{ route.rider_fee | number: '1.2-2' }}</td>
+                </tr>
                 }
-            </span>
-        </li>
-        }
-    </ol>
+            </tbody>
+        </table>
+    </div>
     } @else {
     <div class="state-box">
         <p>กด "คำนวณเส้นทาง" เพื่อแบ่งออเดอร์ให้ไรเดอร์และจัดลำดับการส่ง</p>
