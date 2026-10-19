@@ -1,59 +1,85 @@
-# AngularRouter
+# Frontend — ระบบจัดเส้นทางไรเดอร์ ส่งข้าวกล่องมื้อเที่ยง
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.0.5.
+Angular 22 (standalone components + signals) เรียก API จาก [backend](../backend/README.md)
+ที่ deploy บน Render (`https://adv-web-api.onrender.com`)
 
-## Development server
+## หน้าจอ
 
-To start a local development server, run:
+| Path | ผู้ใช้ | การทำงาน |
+| --- | --- | --- |
+| `/customers` | เจ้าของร้าน | เพิ่ม แก้ ลบ ค้นหาลูกค้า (ชื่อ เบอร์โทร พิกัด) ดูบ้านลูกค้าบนแผนที่ และค้นลูกค้าใกล้จุดที่เลือก |
+| `/orders` | เจ้าของร้าน | เพิ่ม ลบ แก้จำนวนกล่อง (1–3) จำลองออเดอร์ 20–30 รายการ กรองตามวันส่งและสถานะ |
+| `/dispatch` | เจ้าของร้าน | คำนวณเส้นทาง เลือกเป้าหมาย ขอแผนทางเลือก เทียบกับแผนก่อนหน้า ดูกำไร/ขาดทุน/เวลา ยืนยันแผน และคัดลอกลิงก์ใบงานส่งให้ไรเดอร์ |
+| `/rider` | ไรเดอร์ (มือถือ) | กรอกเลขใบงาน |
+| `/rider/:jobCode` | ไรเดอร์ (มือถือ) | ใบงาน: จำนวนกล่องที่ต้องหยิบ ลำดับจุดส่งพร้อมเวลาถึง ปุ่มโทรหาลูกค้า และปุ่มนำทางด้วย Google Maps |
 
-```bash
-ng serve
+## เริ่มใช้งาน
+
+1. ติดตั้ง Node.js 22 ขึ้นไป
+2. ในโฟลเดอร์ `angular-router` รัน `npm install`
+3. `npm start` แล้วเปิด `http://localhost:4200`
+
+backend อนุญาต CORS เฉพาะ origin ที่ตั้งไว้ใน `CORS_ORIGIN` (ค่าเริ่มต้น `http://localhost:4200`)
+จึงต้องเปิดที่พอร์ต 4200 หรือเพิ่ม origin ใหม่ที่ backend ก่อน
+
+ครั้งแรกที่เปิดอาจรอ 30–60 วินาที เพราะ Render ปลุกเซิร์ฟเวอร์ที่หลับอยู่
+
+## ลองใช้ตั้งแต่ต้นจนจบ
+
+1. `/orders` → กด **จำลองออเดอร์** (25 รายการ)
+2. `/dispatch` → กด **คำนวณเส้นทาง**
+3. ลองเปลี่ยนเป้าหมาย หรือกด **เสนอเส้นทางอื่น** แล้วดูกล่อง "เทียบกับแผนก่อนหน้า"
+4. กด **ยืนยันแผนนี้** → ออเดอร์ในแผนเปลี่ยนเป็น "แจกงานแล้ว" (แก้/ลบไม่ได้แล้ว)
+5. กด **คัดลอกลิงก์** ของไรเดอร์คนใดก็ได้ แล้วเปิดลิงก์นั้น หรือกรอกเลขใบงานที่ `/rider`
+
+ล้างข้อมูลทดสอบ: กด **ล้างออเดอร์จำลอง** ที่ `/orders` หรือดู SQL ใน [backend/README.md](../backend/README.md#ล้างข้อมูลทดสอบ)
+
+## โครงสร้าง `src/app`
+
+| ไฟล์ | หน้าที่ |
+| --- | --- |
+| `app.routes.ts` | Route ทุกหน้า (lazy load) |
+| `app.config.ts` | โหลด `GET /settings` (พิกัดร้านและกฎ) ก่อนแสดงหน้าแรก |
+| `shop.config.ts` | พิกัดร้าน รัศมีส่ง และ `DELIVERY_RULES` (ราคา ต้นทุน ค่าไรเดอร์ ความเร็ว เวลา) ค่าเริ่มต้นตรงกับ backend |
+| `models/` | Interface ข้อมูล `Customer`, `Order`, `DeliveryPlan`, `RiderRoute`, `RiderJob` (ต้องตรงกับ `backend/model/`) |
+| `services/` | เรียก API: `customer.service.ts`, `order.service.ts`, `plan.service.ts` |
+| `pages/` | หน้าจอแต่ละหน้า (ตารางด้านบน) |
+| `components/customer-map/` | แผนที่ Leaflet ในหน้าลูกค้า |
+| `utils/geo.ts` | ระยะทาง Haversine (สูตรเดียวกับ backend) |
+
+## การจัดเส้นทาง
+
+คำนวณที่ backend (`backend/service/routing.ts`) หน้า `/dispatch` ส่งแค่เป้าหมายกับเลขแผน (`variant`)
+
+1. เริ่มจากไรเดอร์ 1 คนต่อ 1 ออเดอร์
+2. รวมกลุ่มทีละคู่ที่ประหยัดได้มากที่สุด (Clarke-Wright savings) โดยแต่ละคนไม่เกิน 3 ออเดอร์และต้องส่งทัน 12:30
+3. ย้ายหรือสลับออเดอร์ระหว่างไรเดอร์ (local search) จนลดค่าใช้จ่ายไม่ได้อีก
+4. ในแต่ละกลุ่ม ลองเรียงจุดส่งทุกแบบ (ไม่เกิน 6 แบบ) แล้วเลือกเส้นที่สั้นที่สุด
+
+เป้าหมาย 3 แบบ:
+
+| เป้าหมาย | ลดอะไร |
+| --- | --- |
+| ค่าส่งถูกที่สุด (`min-cost`) | ค่าไรเดอร์รวม = กำไรมากที่สุด |
+| ระยะทางสั้นที่สุด (`min-distance`) | ระยะวิ่งรวมทุกคัน |
+| ใช้ไรเดอร์น้อยที่สุด (`min-riders`) | จำนวนคัน แล้วค่อยดูค่าไรเดอร์ |
+
+**เสนอเส้นทางอื่น** = ขอ `variant` ถัดไป ซึ่งสุ่มลำดับการรวมกลุ่มต่างไปจากเดิม
+ถ้าได้เส้นทางซ้ำกับแผนปัจจุบัน หน้าเว็บจะลองต่ออีกไม่เกิน 5 ครั้ง
+`variant` เดิมได้ผลเดิมเสมอ ปุ่ม **กลับไปแผนก่อนหน้า** จึงขอแผนเดิมกลับมาได้ (เลขใบงานจะเป็นเลขใหม่)
+
+## ข้อสมมติ
+
+- ระยะทางเป็นเส้นตรงระหว่างพิกัด (Haversine) ระยะบนถนนจริงจะยาวกว่านี้
+- นับระยะจากร้านถึงจุดส่งสุดท้าย ไม่นับขากลับร้าน
+- ค่าไรเดอร์ต่อรอบ = 15 + 2 × ระยะทางทั้งรอบ (กม.) × จำนวนกล่องในรอบ
+  เช่น รับ 6 กล่อง วิ่ง 2 กม. = 15 + 2 × 2 × 6 = 39 บาท
+- ไรเดอร์ออกจากร้านพร้อมกัน 11:30 วิ่ง 30 กม./ชม. เวลาที่แสดงปัดขึ้นเป็นนาที
+- กำไร = (65 − 40) × จำนวนกล่อง − ค่าไรเดอร์รวม
+
+## ทดสอบ
+
+```sh
+npm test       # unit test (Vitest)
+npm run build  # ตรวจว่า build ผ่าน
 ```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
