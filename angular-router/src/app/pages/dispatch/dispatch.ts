@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { map, of, switchMap } from 'rxjs';
-import { DeliveryPlan, PlanStrategy } from '../../models/delivery-plan';
+import { DeliveryPlan, PlanStrategy, RiderRoute } from '../../models/delivery-plan';
 import { Order } from '../../models/order';
 import { OrderService } from '../../services/order.service';
 import { PlanService } from '../../services/plan.service';
@@ -92,6 +92,10 @@ export class Dispatch implements OnInit {
   readonly working = signal(false);
   readonly actionError = signal('');
   readonly notice = signal('');
+  // กด "ยืนยันแผนนี้" แล้วรอการยืนยันอีกครั้ง
+  readonly confirming = signal(false);
+  // เลขใบงานที่เพิ่งคัดลอกลิงก์ ('all' = คัดลอกทุกใบงาน)
+  readonly copied = signal('');
 
   readonly plan = computed(() => this.current()?.plan ?? null);
   readonly variant = computed(() => this.current()?.variant ?? 0);
@@ -228,6 +232,7 @@ export class Dispatch implements OnInit {
 
     const currentKey = planKey(current.plan);
     this.working.set(true);
+    this.confirming.set(false);
     this.actionError.set('');
     this.notice.set('');
 
@@ -257,6 +262,74 @@ export class Dispatch implements OnInit {
     attempt(current.variant + 1, MAX_TRIES);
   }
 
+  // ยืนยันแผน: ออเดอร์ในแผนเปลี่ยนเป็น assigned และส่งเลขใบงานให้ไรเดอร์ได้
+  confirmPlan(): void {
+    const current = this.current();
+    if (!current || this.working()) {
+      return;
+    }
+
+    this.working.set(true);
+    this.actionError.set('');
+    this.notice.set('');
+
+    this.planService.confirm(current.plan.id).subscribe({
+      next: (plan) => {
+        this.current.set({ ...current, plan });
+        this.previous.set(null);
+        this.confirming.set(false);
+        // ออเดอร์ในแผนไม่ได้ pending แล้ว
+        this.orders.set([]);
+        this.notice.set('ยืนยันแผนแล้ว ส่งลิงก์ใบงานให้ไรเดอร์แต่ละคนได้เลย');
+        this.working.set(false);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.actionError.set(
+          error.error?.error === 'Orders changed after this plan was calculated. Please recalculate.'
+            ? 'ออเดอร์มีการเปลี่ยนแปลงหลังคำนวณแผนนี้ กรุณากด "คำนวณใหม่ตั้งแต่ต้น" ก่อนยืนยัน'
+            : describeError(error),
+        );
+        this.confirming.set(false);
+        this.working.set(false);
+      },
+    });
+  }
+
+  jobUrl(jobCode: string): string {
+    return `${location.origin}/rider/${jobCode}`;
+  }
+
+  // คัดลอกลิงก์ใบงาน 1 ใบ ไว้วางในแชตส่งให้ไรเดอร์
+  copyJobLink(route: RiderRoute): void {
+    this.copyText(`ไรเดอร์ ${route.rider_no} ใบงาน ${route.job_code}\n${this.jobUrl(route.job_code)}`, route.job_code);
+  }
+
+  // คัดลอกลิงก์ทุกใบงานในข้อความเดียว ไว้วางในกลุ่มแชตไรเดอร์
+  copyAllJobLinks(): void {
+    const plan = this.plan();
+    if (!plan) {
+      return;
+    }
+
+    const lines = plan.routes.map(
+      (route) =>
+        `ไรเดอร์ ${route.rider_no} (${route.total_boxes} กล่อง, ${route.stops.length} จุด): ${this.jobUrl(route.job_code)}`,
+    );
+    this.copyText(`ใบงานส่งข้าวกล่อง วันที่ ${this.today}\n${lines.join('\n')}`, 'all');
+  }
+
+  private copyText(text: string, key: string): void {
+    navigator.clipboard.writeText(text).then(
+      () => {
+        this.copied.set(key);
+        setTimeout(() => {
+          if (this.copied() === key) this.copied.set('');
+        }, 2000);
+      },
+      () => this.actionError.set('คัดลอกไม่สำเร็จ เบราว์เซอร์ไม่อนุญาตให้ใช้คลิปบอร์ด'),
+    );
+  }
+
   // กลับไปใช้แผนก่อนหน้า backend เก็บแค่ร่างล่าสุด จึงต้องขอคำนวณแผนนั้นซ้ำ (ได้เส้นทางเดิม)
   usePreviousPlan(): void {
     const previous = this.previous();
@@ -277,6 +350,7 @@ export class Dispatch implements OnInit {
     }
 
     this.working.set(true);
+    this.confirming.set(false);
     this.actionError.set('');
     this.notice.set('');
 

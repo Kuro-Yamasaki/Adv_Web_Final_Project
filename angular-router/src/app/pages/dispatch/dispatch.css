@@ -427,6 +427,66 @@ tbody tr.late-row {
   color: #245437;
 }
 
+/* ยืนยันแผน */
+.confirm-button {
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid #34724b;
+  border-radius: 8px;
+  background: #34724b;
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.confirm-button:hover:not(:disabled) {
+  background: #245437;
+}
+
+.confirm-card {
+  margin-bottom: 16px;
+  padding: 20px 24px;
+  border: 1px solid #34724b;
+  border-radius: 8px;
+  background: #e8f1ec;
+}
+
+.confirm-card p {
+  margin: 0 0 12px;
+}
+
+/* ลิงก์และปุ่มคัดลอกใบงานในตาราง */
+.rider-cell .job-link {
+  display: block;
+  color: #145491;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.copy-button {
+  margin-top: 6px;
+  padding: 4px 10px;
+  border: 1px solid #767676;
+  border-radius: 6px;
+  background: white;
+  color: #2c2c2b;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.copy-button:hover {
+  background: #f0efed;
+}
+
+.copy-button:focus-visible,
+.rider-cell .job-link:focus-visible {
+  outline: 3px solid #1967b3;
+  outline-offset: 2px;
+}
+
 .strategy-picker:disabled .strategy-option {
   opacity: 0.55;
   cursor: not-allowed;

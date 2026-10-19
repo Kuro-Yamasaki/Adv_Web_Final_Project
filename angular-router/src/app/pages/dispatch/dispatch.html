@@ -100,9 +100,38 @@
                 กลับไปแผนก่อนหน้า
             </button>
             }
+
+            <button type="button" class="confirm-button" [disabled]="busy() || outdated() || confirming()"
+                (click)="confirming.set(true)">
+                ยืนยันแผนนี้
+            </button>
         </div>
+        } @else {
+        <button type="button" class="primary-button" (click)="copyAllJobLinks()">
+            {{ copied() === 'all' ? 'คัดลอกแล้ว ✓' : 'คัดลอกลิงก์ใบงานทั้งหมด' }}
+        </button>
         }
     </div>
+
+    @if (confirming()) {
+    <section class="confirm-card" aria-labelledby="confirm-title">
+        <h2 id="confirm-title">ยืนยันแผนนี้?</h2>
+        <p>
+            ไรเดอร์ {{ plan.routes.length }} คน ส่ง {{ plan.total_boxes }} กล่อง
+            กำไร {{ plan.cost.profit | number: '1.2-2' }} บาท ส่งเสร็จ {{ plan.latest_finish_at }} น.
+        </p>
+        <p class="muted">ยืนยันแล้วจะคำนวณเส้นทางของวันนี้ใหม่ไม่ได้ และออเดอร์ทั้งหมดในแผนจะเปลี่ยนเป็น "แจกงานแล้ว"</p>
+
+        <div class="header-actions">
+            <button type="button" class="confirm-button" [disabled]="working()" (click)="confirmPlan()">
+                {{ working() ? 'กำลังยืนยัน…' : 'ยืนยัน' }}
+            </button>
+            <button type="button" class="secondary-button" [disabled]="working()" (click)="confirming.set(false)">
+                ยกเลิก
+            </button>
+        </div>
+    </section>
+    }
 
     @if (outdated()) {
     <p class="alert alert-warning" role="alert">
@@ -228,7 +257,13 @@
                 <tr [class.late-row]="route.late">
                     <td class="rider-cell" [style.border-left-color]="route.color">
                         <strong>ไรเดอร์ {{ route.rider_no }}</strong>
-                        <span class="muted">ใบงาน {{ route.job_code }}</span>
+                        <a class="job-link" [routerLink]="['/rider', route.job_code]" target="_blank">
+                            ใบงาน {{ route.job_code }}
+                        </a>
+                        <button type="button" class="copy-button" (click)="copyJobLink(route)"
+                            [attr.aria-label]="'คัดลอกลิงก์ใบงานไรเดอร์ ' + route.rider_no">
+                            {{ copied() === route.job_code ? 'คัดลอกแล้ว ✓' : 'คัดลอกลิงก์' }}
+                        </button>
                     </td>
 
                     <td>
