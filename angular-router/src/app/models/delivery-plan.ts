@@ -50,6 +50,27 @@ export interface DeliveryPlan {
   late_count: number;
 }
 
+// เป้าหมายของการจัดเส้นทาง (ต้องตรงกับ PLAN_STRATEGIES ใน backend/service/routing.ts)
+// - min-cost: ค่าจ้างไรเดอร์รวมต่ำสุด (กำไรมากสุด)
+// - min-distance: ระยะทางวิ่งรวมสั้นสุด
+// - min-riders: ใช้ไรเดอร์น้อยคันที่สุด แล้วค่อยดูค่าจ้าง
+export type PlanStrategy = 'min-cost' | 'min-distance' | 'min-riders';
+
+// แผนแบบย่อจาก GET /plans?date= (ไม่มีรายละเอียดไรเดอร์)
+export interface PlanSummary {
+  id: number;
+  plan_date: string;
+  status: DeliveryPlan['status'];
+  variant: number;
+  total_boxes: number;
+  total_distance_km: number;
+  rider_fee: number;
+  profit: number;
+  latest_finish_at: string;
+  late_count: number;
+  created_at: string;
+}
+
 // ใบงานที่ไรเดอร์เปิดดูด้วยเลขใบงาน (GET /plans/jobs/:jobCode)
 export interface RiderJob extends RiderRoute {
   plan_id: number;

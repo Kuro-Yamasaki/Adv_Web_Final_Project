@@ -83,7 +83,7 @@
 
     <form class="job-form" [formGroup]="jobForm" (ngSubmit)="openJob()" novalidate>
         <label for="job-code">เลขใบงาน</label>
-        <input id="job-code" type="text" formControlName="jobCode" placeholder="เช่น 20261019-1"
+        <input id="job-code" type="text" formControlName="jobCode" placeholder="เช่น K7QM2XPA"
             autocomplete="off" autocapitalize="off" spellcheck="false"
             [attr.aria-invalid]="jobForm.controls.jobCode.invalid && jobForm.controls.jobCode.touched"
             aria-describedby="job-code-error" />
