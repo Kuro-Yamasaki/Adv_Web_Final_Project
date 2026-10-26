@@ -8,6 +8,7 @@ import { Order } from '../../models/order';
 import { OrderService } from '../../services/order.service';
 import { PlanService } from '../../services/plan.service';
 import { DELIVERY_RULES } from '../../shop.config';
+import { RouteMap } from '../../components/route-map/route-map'; //update for routemap
 
 // วันที่วันนี้ตามเวลาไทย รูปแบบ YYYY-MM-DD (ตรงกับ delivery_date ที่ backend บันทึก)
 function todayBangkok(): string {
@@ -66,10 +67,11 @@ interface PlanState {
 @Component({
   selector: 'app-dispatch',
   standalone: true,
-  imports: [RouterLink, DecimalPipe],
+  imports: [RouterLink, DecimalPipe, RouteMap],
   templateUrl: './dispatch.html',
   styleUrl: './dispatch.css',
 })
+
 export class Dispatch implements OnInit {
   private readonly orderService = inject(OrderService);
   private readonly planService = inject(PlanService);

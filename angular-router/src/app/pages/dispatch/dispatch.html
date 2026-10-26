@@ -161,8 +161,7 @@
     </div>
     }
 
-    <!-- พื้นที่แผนที่ จะใส่ component แผนที่เส้นทางภายหลัง -->
-    <div class="map-placeholder" aria-hidden="true">แผนที่เส้นทาง</div>
+    <app-route-map [routes]="plan.routes" /> <!--update routemap-->
 
     @if (plan.cost.profit < 0) {
     <div class="alert alert-danger" role="alert">

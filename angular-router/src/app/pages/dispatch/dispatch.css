@@ -234,18 +234,6 @@ button:focus-visible {
   font-weight: 600;
 }
 
-/* แผนที่ (ชั่วคราว) */
-.map-placeholder {
-  display: grid;
-  place-items: center;
-  height: 480px;
-  margin-bottom: 24px;
-  border: 2px dashed #c9c8c6;
-  border-radius: 8px;
-  background: #f9f8f7;
-  color: #767676;
-}
-
 /* แจ้งเตือน */
 .alert {
   margin-bottom: 16px;
@@ -513,10 +501,6 @@ tbody tr.late-row {
 
   .summary-card dd {
     font-size: 22px;
-  }
-
-  .map-placeholder {
-    height: 300px;
   }
 
   .panel-grid,
