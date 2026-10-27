@@ -9,10 +9,10 @@
         </div>
 
         <div class="header-actions">
-            @if (!confirmed()) {
+            @if (!confirmed() || orders().length > 0) {
             <button type="button" class="primary-button" [disabled]="busy() || orders().length === 0"
                 (click)="calculate()">
-                {{ working() ? 'กำลังคำนวณ…' : plan() ? 'คำนวณใหม่ตั้งแต่ต้น' : 'คำนวณเส้นทาง' }}
+                {{ working() ? 'กำลังคำนวณ…' : confirmed() ? 'จัดส่งรอบใหม่' : plan() ? 'คำนวณใหม่ตั้งแต่ต้น' : 'คำนวณเส้นทาง' }}
             </button>
             }
 
@@ -62,7 +62,7 @@
         </div>
     </dl>
 
-    @if (!confirmed()) {
+    @if (!confirmed() || orders().length > 0) {
     <fieldset class="strategy-picker" [disabled]="busy()">
         <legend>เป้าหมายในการจัดเส้นทาง</legend>
 
@@ -108,7 +108,7 @@
         </div>
         } @else {
         <button type="button" class="primary-button" (click)="copyAllJobLinks()">
-            {{ copied() === 'all' ? 'คัดลอกแล้ว ✓' : 'คัดลอกลิงก์ใบงานทั้งหมด' }}
+            {{ copied() === 'all' ? 'คัดลอกแล้ว ✓' : 'คัดลอกเลขใบงานทั้งหมด' }}
         </button>
         }
     </div>
@@ -120,7 +120,7 @@
             ไรเดอร์ {{ plan.routes.length }} คน ส่ง {{ plan.total_boxes }} กล่อง
             กำไร {{ plan.cost.profit | number: '1.2-2' }} บาท ส่งเสร็จ {{ plan.latest_finish_at }} น.
         </p>
-        <p class="muted">ยืนยันแล้วจะคำนวณเส้นทางของวันนี้ใหม่ไม่ได้ และออเดอร์ทั้งหมดในแผนจะเปลี่ยนเป็น "แจกงานแล้ว"</p>
+        <p class="muted">ยืนยันแล้วออเดอร์ทั้งหมดในแผนจะเปลี่ยนเป็น "แจกงานแล้ว" ออเดอร์ที่เข้ามาหลังจากนี้จะจัดเป็นรอบส่งใหม่</p>
 
         <div class="header-actions">
             <button type="button" class="confirm-button" [disabled]="working()" (click)="confirmPlan()">
@@ -131,6 +131,13 @@
             </button>
         </div>
     </section>
+    }
+
+    @if (confirmed() && orders().length > 0) {
+    <p class="alert alert-warning" role="alert">
+        มีออเดอร์เข้ามาใหม่ {{ orders().length }} รายการหลังยืนยันแผนนี้ กด "จัดส่งรอบใหม่" เพื่อแบ่งให้ไรเดอร์อีกรอบ
+        (ใบงานของรอบที่ยืนยันแล้วยังใช้ได้ตามเดิม)
+    </p>
     }
 
     @if (outdated()) {
@@ -256,12 +263,10 @@
                 <tr [class.late-row]="route.late">
                     <td class="rider-cell" [style.border-left-color]="route.color">
                         <strong>ไรเดอร์ {{ route.rider_no }}</strong>
-                        <a class="job-link" [routerLink]="['/rider', route.job_code]" target="_blank">
-                            ใบงาน {{ route.job_code }}
-                        </a>
+                        <span class="job-link">ใบงาน {{ route.job_code }}</span>
                         <button type="button" class="copy-button" (click)="copyJobLink(route)"
-                            [attr.aria-label]="'คัดลอกลิงก์ใบงานไรเดอร์ ' + route.rider_no">
-                            {{ copied() === route.job_code ? 'คัดลอกแล้ว ✓' : 'คัดลอกลิงก์' }}
+                            [attr.aria-label]="'คัดลอกเลขใบงานไรเดอร์ ' + route.rider_no">
+                            {{ copied() === route.job_code ? 'คัดลอกแล้ว ✓' : 'คัดลอกเลขใบงาน' }}
                         </button>
                     </td>
 

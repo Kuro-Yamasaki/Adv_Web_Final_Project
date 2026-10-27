@@ -35,10 +35,6 @@ function describeError(error: HttpErrorResponse): string {
 
   const detail = error.error?.error;
 
-  if (detail === 'This date already has a confirmed plan') {
-    return 'วันนี้ยืนยันแผนไปแล้ว คำนวณใหม่ไม่ได้';
-  }
-
   if (detail === 'No pending orders for this date') {
     return 'วันนี้ไม่มีออเดอร์ที่รอจัดส่ง';
   }
@@ -184,7 +180,7 @@ export class Dispatch implements OnInit {
       error: fail,
     });
 
-    // backend เรียงแผนที่ยืนยันแล้วไว้ก่อน ตามด้วย draft ล่าสุด
+    // backend เรียงแผนใหม่สุดก่อน (ร่างที่กำลังพิจารณา หรือรอบที่ยืนยันล่าสุด)
     this.planService
       .list(this.today)
       .pipe(
@@ -281,7 +277,7 @@ export class Dispatch implements OnInit {
         this.confirming.set(false);
         // ออเดอร์ในแผนไม่ได้ pending แล้ว
         this.orders.set([]);
-        this.notice.set('ยืนยันแผนแล้ว ส่งลิงก์ใบงานให้ไรเดอร์แต่ละคนได้เลย');
+        this.notice.set('ยืนยันแผนแล้ว ส่งเลขใบงานให้ไรเดอร์แต่ละคนได้เลย');
         this.working.set(false);
       },
       error: (error: HttpErrorResponse) => {
@@ -296,16 +292,20 @@ export class Dispatch implements OnInit {
     });
   }
 
-  jobUrl(jobCode: string): string {
-    return `${location.origin}/rider/${jobCode}`;
+  // หน้าที่ไรเดอร์เปิดเพื่อกรอกเลขใบงานเอง (ไม่ใส่เลขใบงานใน URL)
+  riderPageUrl(): string {
+    return `${location.origin}/rider`;
   }
 
-  // คัดลอกลิงก์ใบงาน 1 ใบ ไว้วางในแชตส่งให้ไรเดอร์
+  // คัดลอกเลขใบงาน 1 ใบ ไว้วางในแชตส่งให้ไรเดอร์
   copyJobLink(route: RiderRoute): void {
-    this.copyText(`ไรเดอร์ ${route.rider_no} ใบงาน ${route.job_code}\n${this.jobUrl(route.job_code)}`, route.job_code);
+    this.copyText(
+      `ไรเดอร์ ${route.rider_no} เลขใบงาน: ${route.job_code}\nกรอกเลขใบงานที่ ${this.riderPageUrl()}`,
+      route.job_code,
+    );
   }
 
-  // คัดลอกลิงก์ทุกใบงานในข้อความเดียว ไว้วางในกลุ่มแชตไรเดอร์
+  // คัดลอกเลขใบงานทุกคนในข้อความเดียว ไว้วางในกลุ่มแชตไรเดอร์
   copyAllJobLinks(): void {
     const plan = this.plan();
     if (!plan) {
@@ -314,9 +314,12 @@ export class Dispatch implements OnInit {
 
     const lines = plan.routes.map(
       (route) =>
-        `ไรเดอร์ ${route.rider_no} (${route.total_boxes} กล่อง, ${route.stops.length} จุด): ${this.jobUrl(route.job_code)}`,
+        `ไรเดอร์ ${route.rider_no} (${route.total_boxes} กล่อง, ${route.stops.length} จุด): เลขใบงาน ${route.job_code}`,
     );
-    this.copyText(`ใบงานส่งข้าวกล่อง วันที่ ${this.today}\n${lines.join('\n')}`, 'all');
+    this.copyText(
+      `ใบงานส่งข้าวกล่อง วันที่ ${this.today}\n${lines.join('\n')}\nกรอกเลขใบงานของตัวเองที่ ${this.riderPageUrl()}`,
+      'all',
+    );
   }
 
   private copyText(text: string, key: string): void {

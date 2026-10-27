@@ -1,9 +1,7 @@
-import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
 import { RiderJob, RouteStop } from '../../models/delivery-plan';
 import { PlanService } from '../../services/plan.service';
 import { DELIVERY_RULES, SHOP_LOCATION } from '../../shop.config';
@@ -32,12 +30,9 @@ const toLatLng = (point: { latitude: number; longitude: number }) =>
   templateUrl: './rider.html',
   styleUrl: './rider.css',
 })
-export class Rider implements OnInit {
+export class Rider {
   private readonly planService = inject(PlanService);
   private readonly fb = inject(FormBuilder);
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
-  private readonly destroyRef = inject(DestroyRef);
 
   readonly rules = DELIVERY_RULES;
   readonly shopName = SHOP_LOCATION.name;
@@ -67,34 +62,22 @@ export class Rider implements OnInit {
     jobCode: ['', [Validators.required, Validators.pattern(/^\s*[\w-]{1,20}\s*$/)]],
   });
 
-  // เลขใบงานอยู่ใน URL (/rider/:jobCode) ร้านจึงส่งลิงก์ให้ไรเดอร์กดเปิดได้เลย
-  ngOnInit(): void {
-    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      const jobCode = params.get('jobCode');
-
-      if (jobCode) {
-        this.jobForm.setValue({ jobCode });
-        this.loadJob(jobCode);
-      } else {
-        this.job.set(null);
-        this.errorMessage.set('');
-        this.jobForm.reset();
-      }
-    });
-  }
-
+  // ไรเดอร์กรอกเลขใบงานที่ได้จากร้านเอง (ตามโจทย์) แล้วกด "ดูใบงาน"
   openJob(): void {
     if (this.jobForm.invalid) {
       this.jobForm.markAllAsTouched();
       return;
     }
 
-    this.router.navigate(['/rider', this.jobForm.getRawValue().jobCode.trim()]);
+    this.loadJob(this.jobForm.getRawValue().jobCode.trim().toUpperCase());
   }
 
   // กลับไปหน้ากรอกเลขใบงาน
   clearJob(): void {
-    this.router.navigate(['/rider']);
+    this.job.set(null);
+    this.errorMessage.set('');
+    this.stopError.set('');
+    this.jobForm.reset();
   }
 
   reload(): void {

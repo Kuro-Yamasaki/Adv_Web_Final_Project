@@ -123,13 +123,8 @@ router.post("/", async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // วันนี้ยืนยันแผนไปแล้ว ห้ามคำนวณทับ
-    const [confirmed] = await connection.execute<RowDataPacket[]>(
-      "SELECT id FROM delivery_plan WHERE plan_date = ? AND status = 'confirmed' LIMIT 1", [date]);
-    if (confirmed.length > 0) {
-      await connection.rollback();
-      res.status(409).json({ error: "This date already has a confirmed plan", plan_id: confirmed[0].id }); return;
-    }
+    // ยืนยันแผนไปแล้วก็คำนวณได้อีก: คิดเฉพาะออเดอร์ที่ยัง pending (ออเดอร์ที่เข้ามาภายหลัง = รอบส่งใหม่)
+    // แผนที่ยืนยันแล้วไม่ถูกแตะ ใบงานของไรเดอร์รอบก่อนยังใช้ได้ตามเดิม
 
     const orders = await loadPendingOrders(connection, date);
     if (orders.length === 0) {
@@ -192,7 +187,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// รายการแผนของวันนั้น (ใหม่สุดก่อน) ใช้ตอนเปิดหน้าใหม่เพื่อดูว่ามีแผนอยู่แล้วหรือยัง
+// รายการแผนของวันนั้น ใหม่สุดก่อน (ร่างล่าสุด หรือรอบที่ยืนยันล่าสุด) ใช้ตอนเปิดหน้าใหม่
 // GET /plans?date=2026-10-19 (ไม่ใส่ = วันนี้)
 router.get("/", async (req, res) => {
   const date = readDate(req.query.date);
@@ -202,7 +197,7 @@ router.get("/", async (req, res) => {
     SELECT id, plan_date, status, seed AS variant, total_boxes, total_distance_km,
            rider_fee, profit, latest_finish_at, late_count, created_at
     FROM delivery_plan WHERE plan_date = ?
-    ORDER BY (status = 'confirmed') DESC, id DESC`, [date]);
+    ORDER BY id DESC`, [date]);
   res.json(rows.map((r) => ({ ...r, latest_finish_at: hhmm(r.latest_finish_at) })));
 });
 

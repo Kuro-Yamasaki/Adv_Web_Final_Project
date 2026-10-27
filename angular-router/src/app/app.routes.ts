@@ -24,9 +24,9 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/rider/rider').then((m) => m.Rider),
   },
   {
-    // ลิงก์ที่ส่งให้ไรเดอร์ เปิดใบงานได้เลยโดยไม่ต้องกรอกเลข
+    // ไรเดอร์ต้องกรอกเลขใบงานเอง ลิงก์แบบเก่าที่มีเลขใน URL ให้กลับไปหน้ากรอกเลข
     path: 'rider/:jobCode',
-    loadComponent: () => import('./pages/rider/rider').then((m) => m.Rider),
+    redirectTo: 'rider',
   },
   {
     path: '**',
