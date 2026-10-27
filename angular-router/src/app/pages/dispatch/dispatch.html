@@ -161,8 +161,6 @@
     </div>
     }
 
-    <app-route-map [routes]="plan.routes" /> <!--update routemap-->
-
     @if (plan.cost.profit < 0) {
     <div class="alert alert-danger" role="alert">
         แผนนี้ขาดทุน {{ -plan.cost.profit | number: '1.2-2' }} บาท ลองคำนวณเส้นทางใหม่
@@ -174,6 +172,8 @@
         มีไรเดอร์ {{ plan.late_count }} คนส่งไม่ทัน {{ rules.deadlineTime }} น. (แถวที่ขึ้นป้าย "เลท" ในตาราง)
     </div>
     }
+
+    <app-route-map [routes]="plan.routes" />
 
     <div class="panel-grid">
         <section class="panel" aria-labelledby="cost-title">

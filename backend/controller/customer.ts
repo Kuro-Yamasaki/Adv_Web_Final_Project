@@ -37,12 +37,15 @@ router.get("/search", async (req, res) => {
     return;
   }
 
+  // กัน % และ _ ที่ผู้ใช้พิมพ์ ไม่ให้กลายเป็นตัวแทนอักษรใน LIKE
+  const like = keyword.replace(/[\\%_]/g, (ch) => "\\" + ch);
+
   const [rows] = await conn.execute<CustomerRow[]>(
     `SELECT ${columns}
      FROM customer
      WHERE first_name LIKE ? OR last_name LIKE ?
      ORDER BY id`,
-    [`%${keyword}%`, `%${keyword}%`]
+    [`%${like}%`, `%${like}%`]
   );
 
   res.json(rows);
@@ -139,10 +142,29 @@ router.put("/:id", async (req, res) => {
   // Existence is checked separately so unchanged values do not become a false 404.
   const [rows] = await conn.execute<RowDataPacket[]>("SELECT id FROM customer WHERE id = ?", [id]);
   if (!rows.length) { res.status(404).json({ error: "Customer not found" }); return; }
-  const [result] = await conn.execute<ResultSetHeader>(
-    "UPDATE customer SET first_name=?, last_name=?, phone=?, latitude=?, longitude=? WHERE id=?", [...fields(req.body), id],
-  );
-  res.json({ message: "Customer updated", affected_row: result.affectedRows });
+  const connection = await conn.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [result] = await connection.execute<ResultSetHeader>(
+      "UPDATE customer SET first_name=?, last_name=?, phone=?, latitude=?, longitude=? WHERE id=?", [...fields(req.body), id],
+    );
+    // ออเดอร์ที่ยังรอจัดส่งต้องไปส่งที่พิกัดใหม่ด้วย (ออเดอร์ที่จัดให้ไรเดอร์แล้วไม่เปลี่ยน)
+    const [orders] = await connection.execute<ResultSetHeader>(
+      "UPDATE orders SET delivery_latitude=?, delivery_longitude=? WHERE customer_id=? AND status='pending'",
+      [req.body.latitude, req.body.longitude, id],
+    );
+    // แผนร่างที่คำนวณไว้ใช้พิกัดเก่า ต้องคำนวณใหม่
+    if (orders.affectedRows > 0) {
+      await connection.execute("DELETE FROM delivery_plan WHERE status = 'draft'");
+    }
+    await connection.commit();
+    res.json({ message: "Customer updated", affected_row: result.affectedRows, updated_pending_orders: orders.affectedRows });
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 });
 
 router.delete("/:id", async (req, res) => {

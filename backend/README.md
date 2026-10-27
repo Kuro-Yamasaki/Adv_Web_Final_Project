@@ -24,6 +24,8 @@ Node.js + TypeScript + Express 5 + MySQL (Aiven) deploy บน Render
 4. คัดลอก `.env.example` เป็น `.env` แล้วใส่รหัสผ่านฐานข้อมูล ไฟล์ CA และพิกัดร้าน (`SHOP_LAT`, `SHOP_LNG`) **ห้าม commit `.env`**
 5. `npm run dev` แล้วเปิด `http://localhost:3000/settings` ต้องเห็นพิกัดร้าน
 
+`CORS_ORIGIN` ใส่ได้หลายเว็บ คั่นด้วยจุลภาค เช่น `http://localhost:4200,https://my-app.vercel.app` (ไม่ต้องมี `/` ท้าย)
+
 บน Render ต้องตั้ง Environment ชุดเดียวกับ `.env` ถ้าไม่มี `SHOP_LAT` / `SHOP_LNG` เซิร์ฟเวอร์จะไม่ start
 
 ## กฎทางธุรกิจ (`config.ts`)
@@ -49,7 +51,7 @@ URL หลัก: `https://adv-web-api.onrender.com` (หรือ `http://local
 | GET | `/customer/search?q=คำค้น` | ค้นจากชื่อหรือนามสกุล |
 | GET | `/customer/nearby?latitude=..&longitude=..` | ลูกค้าในรัศมี 1 กม. จากจุดที่กำหนด |
 | POST | `/customer` | เพิ่มลูกค้า → 201 + `last_idx` |
-| PUT | `/customer/:id` | แก้ไขลูกค้า (ส่งครบ 5 ฟิลด์) |
+| PUT | `/customer/:id` | แก้ไขลูกค้า (ส่งครบ 5 ฟิลด์) ออเดอร์ที่ยัง pending จะใช้พิกัดใหม่ด้วย |
 | DELETE | `/customer/:id` | ลบลูกค้า (409 ถ้ามีออเดอร์อ้างอิง) |
 
 Body ของ POST / PUT:
@@ -77,6 +79,7 @@ Body ของ POST / PUT:
 | GET | `/plans?date=YYYY-MM-DD` | รายการแผนของวันนั้น (แผนที่ยืนยันแล้วขึ้นก่อน) |
 | GET | `/plans/:id` | แผนเต็ม |
 | POST | `/plans/:id/confirm` | ยืนยันแผน ออเดอร์ในแผนเปลี่ยนเป็น assigned |
+| DELETE | `/plans/:id` | ยกเลิกแผน ออเดอร์กลับเป็น pending แล้วคำนวณใหม่ได้ (409 ถ้ามีจุดที่ส่งแล้ว) |
 | GET | `/plans/jobs/:jobCode` | ใบงานไรเดอร์ 1 คน (แต่ละจุดมี `status` ของออเดอร์) |
 | POST | `/plans/jobs/:jobCode/stops/:orderId/delivered` | ไรเดอร์กดส่งแล้ว (เฉพาะแผนที่ยืนยันแล้ว) |
 

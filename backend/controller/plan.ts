@@ -355,3 +355,51 @@ router.post("/:id/confirm", async (req, res) => {
     connection.release();
   }
 });
+
+// ยกเลิกแผน: ลบแผน และคืนออเดอร์ในแผนเป็น pending เพื่อคำนวณใหม่ได้
+// ยกเลิกไม่ได้ถ้าไรเดอร์กดส่งแล้วอย่างน้อย 1 จุด
+router.delete("/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  const connection = await conn.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [plans] = await connection.execute<RowDataPacket[]>(
+      "SELECT id, status FROM delivery_plan WHERE id = ? FOR UPDATE", [id]);
+    if (plans.length === 0) {
+      await connection.rollback();
+      res.status(404).json({ error: "Plan not found" }); return;
+    }
+
+    const [delivered] = await connection.execute<RowDataPacket[]>(`
+      SELECT COUNT(*) AS total FROM plan_stop AS s
+      INNER JOIN plan_route AS r ON s.route_id = r.id
+      INNER JOIN orders AS o ON s.order_id = o.id
+      WHERE r.plan_id = ? AND o.status = 'delivered'`, [id]);
+    if (Number(delivered[0].total) > 0) {
+      await connection.rollback();
+      res.status(409).json({ error: "Some orders in this plan were already delivered" }); return;
+    }
+
+    let released = 0;
+    if (plans[0].status === "confirmed") {
+      const [result] = await connection.execute<ResultSetHeader>(`
+        UPDATE orders SET status = 'pending'
+        WHERE status = 'assigned' AND id IN (
+          SELECT s.order_id FROM plan_stop AS s
+          INNER JOIN plan_route AS r ON s.route_id = r.id WHERE r.plan_id = ?)`, [id]);
+      released = result.affectedRows;
+    }
+
+    // route และ stop ถูกลบตาม (ON DELETE CASCADE)
+    await connection.execute("DELETE FROM delivery_plan WHERE id = ?", [id]);
+    await connection.commit();
+
+    res.json({ message: "Plan cancelled", plan_id: id, released_orders: released });
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+});
