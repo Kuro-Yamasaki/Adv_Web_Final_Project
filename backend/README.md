@@ -81,7 +81,7 @@ Body ของ POST / PUT:
 | POST | `/plans/:id/confirm` | ยืนยันแผน ออเดอร์ในแผนเปลี่ยนเป็น assigned |
 | DELETE | `/plans/:id` | ยกเลิกแผน ออเดอร์กลับเป็น pending แล้วคำนวณใหม่ได้ (409 ถ้ามีจุดที่ส่งแล้ว) |
 | GET | `/plans/jobs/:jobCode` | ใบงานไรเดอร์ 1 คน (แต่ละจุดมี `status` ของออเดอร์) |
-| POST | `/plans/jobs/:jobCode/stops/:orderId/delivered` | ไรเดอร์กดส่งแล้ว (เฉพาะแผนที่ยืนยันแล้ว) |
+| POST | `/plans/jobs/:jobCode/stops/:orderId/delivered` | ไรเดอร์กดส่งแล้ว (เฉพาะแผนที่ยืนยันแล้ว และต้องส่งจุดก่อนหน้าครบก่อน ไม่อย่างนั้น 409) |
 
 Body ของ `POST /plans` (ไม่ส่งก็ได้):
 ```json

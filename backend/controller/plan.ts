@@ -256,7 +256,7 @@ router.get("/jobs/:code", async (req, res) => {
   });
 });
 
-// ไรเดอร์กด "ส่งแล้ว" ทีละจุด
+// ไรเดอร์กด "ส่งแล้ว" ทีละจุด ตามลำดับเท่านั้น (จุดก่อนหน้าต้องส่งแล้ว)
 // POST /plans/jobs/K7QM2XPA/stops/130/delivered (ใช้ได้เฉพาะแผนที่ยืนยันแล้ว)
 router.post("/jobs/:code/stops/:orderId/delivered", async (req, res) => {
   const code = String(req.params.code).trim().toUpperCase();
@@ -266,7 +266,7 @@ router.post("/jobs/:code/stops/:orderId/delivered", async (req, res) => {
   }
 
   const [rows] = await conn.execute<RowDataPacket[]>(`
-    SELECT o.status, p.status AS plan_status
+    SELECT o.status, p.status AS plan_status, s.route_id, s.seq
     FROM plan_stop AS s
     INNER JOIN plan_route AS r ON s.route_id = r.id
     INNER JOIN delivery_plan AS p ON r.plan_id = p.id
@@ -278,6 +278,16 @@ router.post("/jobs/:code/stops/:orderId/delivered", async (req, res) => {
   }
   if (rows[0].status === "delivered") {
     res.json({ order_id: orderId, status: "delivered" }); return;
+  }
+
+  // ต้องส่งจุดก่อนหน้าในใบงานเดียวกันให้ครบก่อน
+  const [previous] = await conn.execute<RowDataPacket[]>(`
+    SELECT s.seq FROM plan_stop AS s
+    INNER JOIN orders AS o ON s.order_id = o.id
+    WHERE s.route_id = ? AND s.seq < ? AND o.status <> 'delivered'
+    ORDER BY s.seq LIMIT 1`, [rows[0].route_id, rows[0].seq]);
+  if (previous.length > 0) {
+    res.status(409).json({ error: "Previous stop must be delivered first", pending_seq: previous[0].seq }); return;
   }
 
   const [result] = await conn.execute<ResultSetHeader>(

@@ -87,9 +87,23 @@ export class Rider {
     }
   }
 
-  // กดส่งแล้วได้เฉพาะแผนที่ร้านยืนยันแล้ว และออเดอร์ที่แจกงานแล้ว
+  // กดส่งแล้วได้เฉพาะแผนที่ร้านยืนยันแล้ว ออเดอร์ที่แจกงานแล้ว
+  // และต้องเป็นจุดถัดไปตามลำดับ (จุดก่อนหน้าส่งครบแล้ว)
   canMarkDelivered(stop: RouteStop): boolean {
-    return this.job()?.plan_status === 'confirmed' && stop.status === 'assigned';
+    return (
+      this.job()?.plan_status === 'confirmed' &&
+      stop.status === 'assigned' &&
+      stop.order_id === this.nextStopId()
+    );
+  }
+
+  // จุดที่ยังรอคิว: ร้านยืนยันแล้ว แต่ยังไม่ถึงลำดับของจุดนี้
+  isWaitingTurn(stop: RouteStop): boolean {
+    return (
+      this.job()?.plan_status === 'confirmed' &&
+      stop.status === 'assigned' &&
+      stop.order_id !== this.nextStopId()
+    );
   }
 
   markDelivered(stop: RouteStop): void {
@@ -122,9 +136,11 @@ export class Rider {
 
       error: (error: HttpErrorResponse) => {
         this.stopError.set(
-          error.status === 409
-            ? 'บันทึกไม่ได้ ร้านอาจยังไม่ยืนยันแผน หรือออเดอร์ถูกเปลี่ยน กรุณากด "โหลดใบงานใหม่"'
-            : describeError(error),
+          error.error?.error === 'Previous stop must be delivered first'
+            ? `ต้องกดส่งจุดที่ ${error.error.pending_seq} ให้เสร็จก่อน`
+            : error.status === 409
+              ? 'บันทึกไม่ได้ ร้านอาจยังไม่ยืนยันแผน หรือออเดอร์ถูกเปลี่ยน กรุณากด "โหลดใบงานใหม่"'
+              : describeError(error),
         );
         this.savingStop.set(null);
       },

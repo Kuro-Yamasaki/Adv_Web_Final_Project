@@ -362,3 +362,14 @@ button:focus-visible {
   background: #fff5f4;
   color: #9c2b23;
 }
+
+/* จุดที่ยังไม่ถึงคิว ต้องส่งจุดก่อนหน้าก่อน */
+.wait-note {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f4f3f1;
+  color: #5c5c5a;
+  font-size: 14px;
+  text-align: center;
+}
