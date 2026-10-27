@@ -56,6 +56,21 @@ export class Customers implements OnInit {
   readonly nearbyError = signal('');
   readonly searchError = signal('');
 
+  // แผงค้นลูกค้าใกล้จุด (ซ่อนไว้จนกว่าจะกดเปิด)
+  readonly showNearby = signal(false);
+  // รอให้ผู้ใช้คลิกจุดศูนย์กลางการค้นบนแผนที่
+  readonly pickingCenter = signal(false);
+
+  // ระหว่างโหลด บันทึก หรือรอยืนยันลบ ห้ามเริ่มงานอื่นซ้อน
+  readonly busy = computed(
+    () => this.loading() || this.saving() || this.deleting() || this.deleteTarget() !== null,
+  );
+
+  // คลิกแผนที่ได้เมื่อเปิดฟอร์มเพิ่ม/แก้ไข หรือกำลังเลือกจุดค้นหา
+  readonly mapPickEnabled = computed(
+    () => (this.showAddForm() && !this.saving()) || this.pickingCenter(),
+  );
+
   readonly nearbyForm = this.fb.group({
     latitude: this.fb.control<number | null>(null, [
       Validators.required,
@@ -140,8 +155,26 @@ export class Customers implements OnInit {
     return distanceKm(SHOP_LOCATION, customer);
   }
 
-  // คลิกหรือลากหมุดบนแผนที่ระหว่างเปิดฟอร์ม → เติมพิกัดลงฟอร์ม
-  onMapPick(point: GeoPoint): void {
+  fullName(customer: Customer): string {
+    return `${customer.first_name} ${customer.last_name}`;
+  }
+
+  // คลิกหรือลากหมุดบนแผนที่
+  // - กำลังเลือกจุดค้นหา → ค้นลูกค้าในรัศมี 1 กม. จากจุดนั้นทันที
+  // - เปิดฟอร์มอยู่ → เติมพิกัดลงฟอร์ม
+  onMapPick(raw: GeoPoint): void {
+    const point: GeoPoint = {
+      latitude: Number(raw.latitude.toFixed(6)),
+      longitude: Number(raw.longitude.toFixed(6)),
+    };
+
+    if (this.pickingCenter()) {
+      this.pickingCenter.set(false);
+      this.nearbyForm.setValue(point);
+      this.searchNearby();
+      return;
+    }
+
     if (!this.showAddForm() || this.saving()) {
       return;
     }
@@ -149,6 +182,41 @@ export class Customers implements OnInit {
     this.customerForm.patchValue(point);
     this.customerForm.controls.latitude.markAsTouched();
     this.customerForm.controls.longitude.markAsTouched();
+  }
+
+  toggleNearby(): void {
+    this.showNearby.update((open) => !open);
+    this.pickingCenter.set(false);
+  }
+
+  startPickCenter(): void {
+    if (this.busy() || this.showAddForm()) {
+      return;
+    }
+
+    this.pickingCenter.update((picking) => !picking);
+    this.nearbyError.set('');
+
+    if (this.pickingCenter()) {
+      this.scrollTo('customer-map-section');
+    }
+  }
+
+  // ค้นลูกค้าในรัศมี 1 กม. รอบร้าน
+  useShopAsCenter(): void {
+    this.pickingCenter.set(false);
+    this.nearbyForm.setValue({
+      latitude: SHOP_LOCATION.latitude,
+      longitude: SHOP_LOCATION.longitude,
+    });
+    this.searchNearby();
+  }
+
+  private scrollTo(id: string): void {
+    // รอให้ Angular วาดส่วนที่เพิ่งเปิดก่อน แล้วค่อยเลื่อนไปหา
+    setTimeout(() =>
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    );
   }
 
   showOnMap(customer: Customer): void {
@@ -314,8 +382,9 @@ export class Customers implements OnInit {
     this.customerForm.reset();
     this.formError.set('');
     this.successMessage.set('');
+    this.pickingCenter.set(false);
     this.showAddForm.set(true);
-
+    this.scrollTo('customer-form');
   }
 
   openEditForm(customer: Customer): void {
@@ -336,8 +405,11 @@ export class Customers implements OnInit {
 
     this.formError.set('');
     this.successMessage.set('');
+    this.pickingCenter.set(false);
     this.showAddForm.set(true);
+    this.scrollTo('customer-form');
   }
+
   cancelAddForm(): void {
     if (this.saving()) {
       return;
@@ -455,6 +527,8 @@ export class Customers implements OnInit {
     this.deleteTarget.set(customer);
     this.deleteError.set('');
     this.successMessage.set('');
+    this.pickingCenter.set(false);
+    this.scrollTo('customer-delete');
   }
 
   cancelDelete(): void {
