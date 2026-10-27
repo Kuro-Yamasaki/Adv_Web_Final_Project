@@ -1,0 +1,300 @@
+<section class="dispatch-page">
+    <header class="page-header">
+        <div>
+            <h1>จัดเส้นทางจัดส่ง</h1>
+            <p>
+                ออกจากร้าน {{ rules.departTime }} น. ต้องถึงลูกค้าทุกคนไม่เกิน {{ rules.deadlineTime }} น.
+                (ไรเดอร์รับไม่เกินคนละ {{ rules.maxOrdersPerRider }} ออเดอร์)
+            </p>
+        </div>
+
+        <div class="header-actions">
+            @if (!confirmed()) {
+            <button type="button" class="primary-button" [disabled]="busy() || orders().length === 0"
+                (click)="calculate()">
+                {{ working() ? 'กำลังคำนวณ…' : plan() ? 'คำนวณใหม่ตั้งแต่ต้น' : 'คำนวณเส้นทาง' }}
+            </button>
+            }
+
+            <button type="button" class="secondary-button" [disabled]="busy()" (click)="refresh()">
+                {{ loading() ? 'กำลังโหลด…' : 'โหลดข้อมูลใหม่' }}
+            </button>
+        </div>
+    </header>
+
+    @if (actionError()) {
+    <p class="alert alert-danger" role="alert">{{ actionError() }}</p>
+    }
+
+    @if (loading() && !plan()) {
+    <div class="state-box" role="status" aria-live="polite">
+        <p>กำลังโหลดออเดอร์และแผนของวันนี้…</p>
+        <small>หากบริการ Render กำลังเริ่มทำงาน อาจใช้เวลาสักครู่</small>
+    </div>
+    } @else if (errorMessage()) {
+    <div class="state-box error-box" role="alert">
+        <p>{{ errorMessage() }}</p>
+
+        <button type="button" class="primary-button" (click)="refresh()">
+            ลองอีกครั้ง
+        </button>
+    </div>
+    } @else if (orders().length === 0 && !plan()) {
+    <div class="state-box">
+        <p>วันนี้ยังไม่มีออเดอร์ที่รอจัดส่ง</p>
+        <a routerLink="/orders" class="text-link">ไปหน้าข้อมูลออเดอร์เพื่อเพิ่มหรือจำลองออเดอร์</a>
+    </div>
+    } @else {
+    <dl class="summary-grid">
+        <div class="summary-card">
+            <dt>ออเดอร์รอจัดส่ง</dt>
+            <dd>{{ orders().length }}</dd>
+        </div>
+
+        <div class="summary-card">
+            <dt>กล่องทั้งหมด</dt>
+            <dd>{{ totalBoxes() }}</dd>
+        </div>
+
+        <div class="summary-card">
+            <dt>ไรเดอร์ที่ใช้</dt>
+            <dd>{{ plan()?.routes?.length ?? '–' }}</dd>
+        </div>
+    </dl>
+
+    @if (!confirmed()) {
+    <fieldset class="strategy-picker" [disabled]="busy()">
+        <legend>เป้าหมายในการจัดเส้นทาง</legend>
+
+        @for (option of strategyOptions; track option.value) {
+        <label class="strategy-option" [class.selected]="strategy() === option.value">
+            <input type="radio" name="strategy" [value]="option.value" [checked]="strategy() === option.value"
+                (change)="selectStrategy(option.value)" />
+            <span class="strategy-label">{{ option.label }}</span>
+            <span class="muted">{{ option.hint }}</span>
+        </label>
+        }
+    </fieldset>
+    }
+
+    @if (plan(); as plan) {
+    <div class="plan-toolbar">
+        <p class="plan-title">
+            แผนที่ {{ variant() + 1 }}
+            @if (confirmed()) {
+            <span class="badge badge-confirmed">ยืนยันแล้ว</span>
+            } @else {
+            <span class="badge badge-draft">ร่าง</span>
+            <span class="muted">· ไม่พอใจเส้นทางนี้? ให้ระบบเสนอแบบอื่นได้</span>
+            }
+        </p>
+
+        @if (!confirmed()) {
+        <div class="header-actions">
+            <button type="button" class="primary-button" [disabled]="busy()" (click)="suggestAnother()">
+                {{ working() ? 'กำลังคำนวณ…' : 'เสนอเส้นทางอื่น' }}
+            </button>
+
+            @if (previous()) {
+            <button type="button" class="secondary-button" [disabled]="busy()" (click)="usePreviousPlan()">
+                กลับไปแผนก่อนหน้า
+            </button>
+            }
+
+            <button type="button" class="confirm-button" [disabled]="busy() || outdated() || confirming()"
+                (click)="confirming.set(true)">
+                ยืนยันแผนนี้
+            </button>
+        </div>
+        } @else {
+        <button type="button" class="primary-button" (click)="copyAllJobLinks()">
+            {{ copied() === 'all' ? 'คัดลอกแล้ว ✓' : 'คัดลอกลิงก์ใบงานทั้งหมด' }}
+        </button>
+        }
+    </div>
+
+    @if (confirming()) {
+    <section class="confirm-card" aria-labelledby="confirm-title">
+        <h2 id="confirm-title">ยืนยันแผนนี้?</h2>
+        <p>
+            ไรเดอร์ {{ plan.routes.length }} คน ส่ง {{ plan.total_boxes }} กล่อง
+            กำไร {{ plan.cost.profit | number: '1.2-2' }} บาท ส่งเสร็จ {{ plan.latest_finish_at }} น.
+        </p>
+        <p class="muted">ยืนยันแล้วจะคำนวณเส้นทางของวันนี้ใหม่ไม่ได้ และออเดอร์ทั้งหมดในแผนจะเปลี่ยนเป็น "แจกงานแล้ว"</p>
+
+        <div class="header-actions">
+            <button type="button" class="confirm-button" [disabled]="working()" (click)="confirmPlan()">
+                {{ working() ? 'กำลังยืนยัน…' : 'ยืนยัน' }}
+            </button>
+            <button type="button" class="secondary-button" [disabled]="working()" (click)="confirming.set(false)">
+                ยกเลิก
+            </button>
+        </div>
+    </section>
+    }
+
+    @if (outdated()) {
+    <p class="alert alert-warning" role="alert">
+        ออเดอร์มีการเปลี่ยนแปลงหลังคำนวณแผนนี้ กรุณากด "คำนวณใหม่ตั้งแต่ต้น"
+    </p>
+    }
+
+    @if (notice()) {
+    <p class="notice" role="status">{{ notice() }}</p>
+    }
+
+    @if (comparison(); as diff) {
+    <div class="compare-box" role="status" aria-live="polite">
+        <strong>เทียบกับแผนก่อนหน้า:</strong>
+        <span [class.better]="diff.profit > 0.005" [class.worse]="diff.profit < -0.005">
+            กำไร {{ diff.profit > 0 ? '+' : '' }}{{ diff.profit | number: '1.2-2' }} บาท
+        </span>
+        <span [class.better]="diff.riders < 0" [class.worse]="diff.riders > 0">
+            ไรเดอร์ {{ diff.riders > 0 ? '+' : '' }}{{ diff.riders }} คน
+        </span>
+        <span [class.better]="diff.distance < -0.005" [class.worse]="diff.distance > 0.005">
+            ระยะทาง {{ diff.distance > 0 ? '+' : '' }}{{ diff.distance | number: '1.2-2' }} กม.
+        </span>
+        <span [class.better]="diff.minutes < 0" [class.worse]="diff.minutes > 0">
+            ส่งเสร็จ {{ diff.minutes > 0 ? '+' : '' }}{{ diff.minutes }} นาที
+        </span>
+    </div>
+    }
+
+    @if (plan.cost.profit < 0) {
+    <div class="alert alert-danger" role="alert">
+        แผนนี้ขาดทุน {{ -plan.cost.profit | number: '1.2-2' }} บาท ลองคำนวณเส้นทางใหม่
+    </div>
+    }
+
+    @if (plan.late_count > 0) {
+    <div class="alert alert-warning" role="alert">
+        มีไรเดอร์ {{ plan.late_count }} คนส่งไม่ทัน {{ rules.deadlineTime }} น. (แถวที่ขึ้นป้าย "เลท" ในตาราง)
+    </div>
+    }
+
+    <app-route-map [routes]="plan.routes" />
+
+    <div class="panel-grid">
+        <section class="panel" aria-labelledby="cost-title">
+            <h2 id="cost-title">ค่าใช้จ่ายและกำไร</h2>
+
+            <dl class="figure-list">
+                <div>
+                    <dt>รายได้ ({{ plan.total_boxes }} กล่อง × {{ rules.pricePerBox }} บาท)</dt>
+                    <dd>{{ plan.cost.revenue | number: '1.2-2' }}</dd>
+                </div>
+
+                <div>
+                    <dt>ต้นทุนอาหาร ({{ plan.total_boxes }} กล่อง × {{ rules.foodCostPerBox }} บาท)</dt>
+                    <dd>−{{ plan.cost.food_cost | number: '1.2-2' }}</dd>
+                </div>
+
+                <div>
+                    <dt>ค่าไรเดอร์ ({{ plan.routes.length }} คน)</dt>
+                    <dd>−{{ plan.cost.rider_fee | number: '1.2-2' }}</dd>
+                </div>
+
+                <div class="figure-total" [class.is-loss]="plan.cost.profit < 0">
+                    <dt>{{ plan.cost.profit < 0 ? 'ขาดทุนสุทธิ' : 'กำไรสุทธิ' }}</dt>
+                    <dd>{{ plan.cost.profit | number: '1.2-2' }} บาท</dd>
+                </div>
+            </dl>
+
+            <p class="panel-note">
+                เฉลี่ยกำไร {{ profitPerBox() | number: '1.2-2' }} บาท/กล่อง ·
+                ค่าไรเดอร์ = {{ rules.riderBaseFee }} บาท/รอบ + {{ rules.riderPerKmPerBox }} บาท × กม. × กล่อง
+            </p>
+        </section>
+
+        <section class="panel" aria-labelledby="time-title">
+            <h2 id="time-title">เวลาจัดส่ง</h2>
+
+            <dl class="figure-list">
+                <div>
+                    <dt>ออกจากร้าน</dt>
+                    <dd>{{ rules.departTime }} น.</dd>
+                </div>
+
+                <div>
+                    <dt>ส่งเสร็จคนสุดท้าย</dt>
+                    <dd>{{ plan.latest_finish_at }} น. ({{ usedMinutes() }} นาที)</dd>
+                </div>
+
+                <div>
+                    <dt>ระยะทางรวมทุกคัน</dt>
+                    <dd>{{ plan.total_distance_km | number: '1.2-2' }} กม.</dd>
+                </div>
+
+                <div class="figure-total" [class.is-loss]="spareMinutes() < 0">
+                    <dt>{{ spareMinutes() < 0 ? 'เกินเส้นตาย' : 'เหลือเวลาก่อน ' + rules.deadlineTime + ' น.' }}</dt>
+                    <dd>{{ spareMinutes() < 0 ? -spareMinutes() : spareMinutes() }} นาที</dd>
+                </div>
+            </dl>
+
+            <p class="panel-note">ความเร็วเฉลี่ย {{ rules.riderSpeedKmh }} กม./ชม. วัดระยะเป็นเส้นตรงจากพิกัด</p>
+        </section>
+    </div>
+
+    <h2 class="section-title">งานของไรเดอร์แต่ละคน</h2>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col">ไรเดอร์</th>
+                    <th scope="col">ลำดับจุดส่ง</th>
+                    <th scope="col" class="num">กล่อง</th>
+                    <th scope="col" class="num">ระยะทาง</th>
+                    <th scope="col">ส่งเสร็จ</th>
+                    <th scope="col" class="num">ค่าส่ง (บาท)</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @for (route of plan.routes; track route.job_code) {
+                <tr [class.late-row]="route.late">
+                    <td class="rider-cell" [style.border-left-color]="route.color">
+                        <strong>ไรเดอร์ {{ route.rider_no }}</strong>
+                        <a class="job-link" [routerLink]="['/rider', route.job_code]" target="_blank">
+                            ใบงาน {{ route.job_code }}
+                        </a>
+                        <button type="button" class="copy-button" (click)="copyJobLink(route)"
+                            [attr.aria-label]="'คัดลอกลิงก์ใบงานไรเดอร์ ' + route.rider_no">
+                            {{ copied() === route.job_code ? 'คัดลอกแล้ว ✓' : 'คัดลอกลิงก์' }}
+                        </button>
+                    </td>
+
+                    <td>
+                        <ol class="stop-list">
+                            @for (stop of route.stops; track stop.order_id) {
+                            <li>
+                                <span class="stop-time">{{ stop.arrive_at }}</span>
+                                {{ stop.customer_name }}
+                                <span class="muted">({{ stop.box_quantity }} กล่อง, +{{ stop.leg_km | number: '1.2-2' }} กม.)</span>
+                            </li>
+                            }
+                        </ol>
+                    </td>
+
+                    <td class="num">{{ route.total_boxes }}</td>
+                    <td class="num">{{ route.distance_km | number: '1.2-2' }} กม.</td>
+                    <td>
+                        {{ route.finish_at }} น.
+                        @if (route.late) {
+                        <span class="badge badge-late">เลท</span>
+                        }
+                    </td>
+                    <td class="num">{{ route.rider_fee | number: '1.2-2' }}</td>
+                </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    } @else {
+    <div class="state-box">
+        <p>กด "คำนวณเส้นทาง" เพื่อแบ่งออเดอร์ให้ไรเดอร์และจัดลำดับการส่ง</p>
+    </div>
+    }
+    }
+</section>

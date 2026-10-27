@@ -1,0 +1,405 @@
+<section class="customer-page">
+    <header class="page-header">
+        <div>
+            <h1>ข้อมูลลูกค้า</h1>
+            <p>รายชื่อลูกค้าและพิกัดสำหรับจัดส่งข้าวกล่อง</p>
+        </div>
+
+        <div class="header-actions">
+
+            <button type="button" class="reload-button" [disabled]=" loading() || saving() || showAddForm() 
+            || deleting() || deleteTarget() !== null" (click)="openAddForm()">
+                เพิ่มลูกค้า
+            </button>
+
+            <button type="button" class="secondary-button" [disabled]="loading() || saving() || deleting() 
+            || deleteTarget() !== null" (click)="loadCustomers()">
+                {{ loading() ? 'กำลังโหลด…' : 'โหลดข้อมูลใหม่' }}
+            </button>
+        </div>
+
+    </header>
+
+    <section class="search-card" aria-label="ค้นหาลูกค้า">
+        <form [formGroup]="searchForm" (ngSubmit)="searchCustomers()">
+            <label for="customer-search">
+                ค้นหาจากชื่อหรือนามสกุล
+            </label>
+
+            <div class="search-row">
+                <input id="customer-search" type="search" formControlName="q" maxlength="100"
+                    placeholder="พิมพ์บางส่วนของชื่อหรือนามสกุล" />
+
+                <button type="submit" class="reload-button" [disabled]="
+          loading() ||
+          saving() ||
+          deleting() ||
+          deleteTarget() !== null ||
+          showAddForm()
+        ">
+                    ค้นหา
+                </button>
+
+                <button type="button" class="secondary-button" [disabled]="
+          loading() ||
+          saving() ||
+          deleting() ||
+          deleteTarget() !== null ||
+          showAddForm()
+        " (click)="clearSearch()">
+                    แสดงทั้งหมด
+                </button>
+            </div>
+
+            @if (searchError()) {
+            <p class="form-error" role="alert">
+                {{ searchError() }}
+            </p>
+            }
+        </form>
+    </section>
+
+    <section class="search-card" aria-labelledby="nearby-title">
+        <h2 id="nearby-title" class="nearby-title">
+            ค้นลูกค้าในรัศมี 1 กม.
+        </h2>
+
+        <p class="nearby-description">
+            กรอกพิกัดจุดศูนย์กลางที่ต้องการค้นหา
+            ระยะที่แสดงไม่ใช่ระยะขับรถตามถนน
+        </p>
+
+        <form [formGroup]="nearbyForm" (ngSubmit)="searchNearby()">
+            <div class="nearby-grid">
+                <div class="form-field">
+                    <label for="nearby-latitude">ละติจูดจุดศูนย์กลาง</label>
+
+                    <input id="nearby-latitude" type="number" formControlName="latitude" min="-90" max="90" step="any"
+                        placeholder="เช่น 16.246" required />
+                </div>
+
+                <div class="form-field">
+                    <label for="nearby-longitude">ลองจิจูดจุดศูนย์กลาง</label>
+
+                    <input id="nearby-longitude" type="number" formControlName="longitude" min="-180" max="180"
+                        step="any" placeholder="เช่น 103.25" required />
+                </div>
+            </div>
+
+            @if (nearbyError()) {
+            <p class="form-error" role="alert">
+                {{ nearbyError() }}
+            </p>
+            }
+
+            <div class="form-actions">
+                <button type="submit" class="reload-button" [disabled]="
+          loading() ||
+          saving() ||
+          deleting() ||
+          deleteTarget() !== null ||
+          showAddForm()
+        ">
+                    ค้นในรัศมี 1 กม.
+                </button>
+
+                <button type="button" class="secondary-button" [disabled]="
+          loading() ||
+          saving() ||
+          deleting() ||
+          deleteTarget() !== null ||
+          showAddForm()
+        " (click)="clearSearch()">
+                    แสดงทั้งหมด
+                </button>
+            </div>
+        </form>
+    </section>
+
+    @if (successMessage()) {
+    <div class="success-box" role="status" aria-live="polite">
+        {{ successMessage() }}
+    </div>
+    }
+    @if (deleteTarget(); as customer) {
+    <section class="delete-card" aria-labelledby="delete-customer-title">
+        <h2 id="delete-customer-title">ยืนยันการลบลูกค้า</h2>
+
+        <p>
+            ต้องการลบลูกค้า
+            <strong>
+                {{ customer.first_name }} {{ customer.last_name }}
+            </strong>
+            รหัส {{ customer.id }} ใช่หรือไม่?
+        </p>
+
+        <p class="delete-warning">
+            การลบสำเร็จแล้วไม่สามารถย้อนกลับผ่านหน้านี้ได้
+            หากลูกค้ามีออเดอร์อ้างอิงอยู่ ระบบจะไม่อนุญาตให้ลบ
+        </p>
+
+        @if (deleteError()) {
+        <p class="form-error" role="alert">
+            {{ deleteError() }}
+        </p>
+        }
+
+        <div class="form-actions">
+            <button type="button" class="delete-button" [disabled]="deleting()" (click)="confirmDelete()">
+                {{ deleting() ? 'กำลังลบ…' : 'ยืนยันลบลูกค้า' }}
+            </button>
+
+            <button type="button" class="secondary-button" [disabled]="deleting()" (click)="cancelDelete()">
+                ยกเลิก
+            </button>
+        </div>
+    </section>
+    }
+    @if (showAddForm()) {
+    <section class="form-card" aria-labelledby="add-customer-title">
+        <h2 id="add-customer-title">
+            @if (editingId() !== null) {
+            แก้ไขลูกค้า — รหัส {{ editingId() }}
+            } @else {
+            เพิ่มลูกค้าใหม่
+            }
+        </h2>
+
+        <form [formGroup]="customerForm" (ngSubmit)="saveCustomer()">
+            <fieldset [disabled]="saving()">
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label for="first-name">ชื่อ</label>
+                        <input id="first-name" type="text" formControlName="first_name" autocomplete="given-name"
+                            maxlength="100" required />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="last-name">นามสกุล</label>
+                        <input id="last-name" type="text" formControlName="last_name" autocomplete="family-name"
+                            maxlength="100" required />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="phone">เบอร์โทร</label>
+                        <input id="phone" type="tel" formControlName="phone" autocomplete="tel" maxlength="20"
+                            required />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="latitude">ละติจูด</label>
+                        <input id="latitude" type="number" formControlName="latitude" min="-90" max="90" step="any"
+                            placeholder="เช่น 16.246" required />
+                        <small>ค่าระหว่าง -90 ถึง 90</small>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="longitude">ลองจิจูด</label>
+                        <input id="longitude" type="number" formControlName="longitude" min="-180" max="180" step="any"
+                            placeholder="เช่น 103.25" required />
+                        <small>ค่าระหว่าง -180 ถึง 180</small>
+                    </div>
+                </div>
+
+                <p class="map-hint">
+                    📍 คลิกบนแผนที่ด้านล่างเพื่อเลือกพิกัดบ้านลูกค้า หรือลากหมุดสีเขียวเพื่อย้ายตำแหน่ง
+                </p>
+
+                @if (pickedDistanceKm(); as distance) {
+                @if (distance > deliveryRadiusKm) {
+                <p class="map-warning" role="status">
+                    ⚠️ ตำแหน่งนี้ห่างจากร้าน {{ distance | number: '1.2-2' }} กม.
+                    เกินเขตส่ง {{ deliveryRadiusKm }} กม.
+                </p>
+                } @else {
+                <p class="map-ok" role="status">
+                    ห่างจากร้าน {{ distance | number: '1.2-2' }} กม. (อยู่ในเขตส่ง)
+                </p>
+                }
+                }
+
+                @if (formError()) {
+                <p class="form-error" role="alert">
+                    {{ formError() }}
+                </p>
+                }
+
+                <div class="form-actions">
+                    <button type="submit" class="reload-button" [disabled]="saving() || loading()">
+                        @if (saving()) {
+                        กำลังบันทึก…
+                        } @else if (editingId() !== null) {
+                        บันทึกการแก้ไข
+                        } @else {
+                        บันทึกลูกค้า
+                        }
+                    </button>
+
+                    <button type="button" class="secondary-button" (click)="cancelAddForm()">
+                        ยกเลิก
+                    </button>
+                </div>
+            </fieldset>
+        </form>
+    </section>
+    }
+
+    <section id="customer-map-section" class="map-card" aria-labelledby="customer-map-title">
+        <div class="map-card-header">
+            <h2 id="customer-map-title" class="nearby-title">แผนที่ลูกค้า</h2>
+
+            <ul class="map-legend" aria-label="คำอธิบายสัญลักษณ์">
+                <li><span class="legend-dot legend-shop"></span>ร้าน</li>
+                <li><span class="legend-dot legend-inside"></span>ในเขตส่ง {{ deliveryRadiusKm }} กม.</li>
+                <li><span class="legend-dot legend-outside"></span>นอกเขตส่ง</li>
+                @if (showAddForm()) {
+                <li><span class="legend-dot legend-picked"></span>ตำแหน่งที่เลือก</li>
+                }
+                @if (activeCenter()) {
+                <li><span class="legend-dot legend-search"></span>รัศมีค้นหา 1 กม.</li>
+                }
+            </ul>
+        </div>
+
+        <app-customer-map [customers]="customers()" [picked]="pickedPoint()" [pickEnabled]="showAddForm() && !saving()"
+            [searchCenter]="activeCenter()" (pick)="onMapPick($event)" />
+    </section>
+
+    @if (loading()) {
+    <div class="state-box" role="status" aria-live="polite">
+        <p>กำลังโหลดข้อมูลลูกค้า…</p>
+        <small>
+            หากบริการ Render กำลังเริ่มทำงาน อาจใช้เวลาสักครู่
+        </small>
+    </div>
+    } @else if (errorMessage()) {
+    <div class="state-box error-box" role="alert">
+        <p>{{ errorMessage() }}</p>
+
+        <button type="button" class="reload-button" (click)="loadCustomers()">
+            ลองอีกครั้ง
+        </button>
+    </div>
+    } @else {
+    <p class="customer-count">
+        @if (activeCenter(); as center) {
+        พบลูกค้า {{ customers().length }} คน ในรัศมี 1 กม.
+        จากพิกัด {{ center.latitude }}, {{ center.longitude }}
+        } @else if (activeKeyword()) {
+        พบลูกค้า {{ customers().length }} คน
+        สำหรับคำค้น “{{ activeKeyword() }}”
+        } @else {
+        ลูกค้าทั้งหมด {{ customers().length }} คน
+        }
+    </p>
+
+    @if (customers().length === 0) {
+    <div class="state-box">
+        @if (activeCenter()) {
+        <p>ไม่พบลูกค้าในรัศมี 1 กม. จากพิกัดที่กำหนด</p>
+        } @else if (activeKeyword()) {
+        <p>ไม่พบลูกค้าที่ตรงกับคำค้น “{{ activeKeyword() }}”</p>
+        } @else {
+        <p>ยังไม่มีข้อมูลลูกค้า</p>
+        }
+    </div>
+    } @else {
+    <div class="table-wrapper">
+        <table>
+            <caption class="sr-only">
+                รายชื่อลูกค้า เบอร์โทร และพิกัดจัดส่ง
+            </caption>
+
+            <thead>
+                <tr>
+                    <th scope="col">รหัส</th>
+                    <th scope="col">ชื่อ</th>
+                    <th scope="col">นามสกุล</th>
+                    <th scope="col">เบอร์โทร</th>
+                    <th scope="col">ละติจูด</th>
+                    <th scope="col">ลองจิจูด</th>
+                    <th scope="col">ห่างจากร้าน (กม.)</th>
+
+                    @if (activeCenter()) {
+                    <th scope="col">ระยะทาง (กม.)</th>
+                    }
+
+                    <th scope="col">จัดการ</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @for (customer of customers(); track customer.id) {
+                <tr>
+                    <td>{{ customer.id }}</td>
+                    <td>{{ customer.first_name }}</td>
+                    <td>{{ customer.last_name }}</td>
+                    <td>{{ customer.phone }}</td>
+                    <td>{{ customer.latitude }}</td>
+                    <td>{{ customer.longitude }}</td>
+                    <td>
+                        @let fromShop = distanceFromShop(customer);
+                        {{ fromShop | number: '1.2-2' }}
+                        @if (fromShop > deliveryRadiusKm) {
+                        <span class="outside-badge">นอกเขต</span>
+                        }
+                    </td>
+                    @if (activeCenter()) {
+                    <td>
+                        @if (customer.distance_km !== undefined) {
+                        {{ customer.distance_km | number: '1.3-3' }}
+                        } @else {
+                        —
+                        }
+                    </td>
+                    }
+                    <td>
+                        <div class="row-actions">
+                            <button type="button" class="secondary-button map-button" [attr.aria-label]="
+        'ดูบนแผนที่ ' +
+        customer.first_name +
+        ' ' +
+        customer.last_name
+      " (click)="showOnMap(customer)">
+                                แผนที่
+                            </button>
+
+                            <button type="button" class="edit-button" [disabled]="
+        loading() ||
+        saving() ||
+        showAddForm() ||
+        deleting() ||
+        deleteTarget() !== null
+      " [attr.aria-label]="
+        'แก้ไขลูกค้า ' +
+        customer.first_name +
+        ' ' +
+        customer.last_name
+      " (click)="openEditForm(customer)">
+                                แก้ไข
+                            </button>
+
+                            <button type="button" class="delete-button" [disabled]="
+        loading() ||
+        saving() ||
+        showAddForm() ||
+        deleting() ||
+        deleteTarget() !== null
+      " [attr.aria-label]="
+        'ลบลูกค้า ' +
+        customer.first_name +
+        ' ' +
+        customer.last_name
+      " (click)="openDeleteConfirmation(customer)">
+                                ลบ
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    }
+    }
+</section>

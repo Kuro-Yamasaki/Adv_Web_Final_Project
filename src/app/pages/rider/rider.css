@@ -1,0 +1,364 @@
+/* หน้านี้ไรเดอร์เปิดบนมือถือเป็นหลัก ตัวหนังสือและปุ่มจึงใหญ่กว่าหน้าอื่น */
+:host {
+  display: block;
+  color: #2c2c2b;
+  font-size: 18px;
+}
+
+.rider-page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.job-header {
+  margin-bottom: 20px;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.job-header p {
+  margin: 0;
+  color: #595959;
+}
+
+/* แถบสีด้านซ้ายคือสีเส้นทางเดียวกับในหน้าจัดเส้นทาง */
+.job-header[style] {
+  padding-left: 14px;
+  border-left: 8px solid;
+}
+
+.job-header .eyebrow {
+  margin-bottom: 4px;
+  font-size: 16px;
+}
+
+/* กล่องสรุปจำนวนที่ต้องหยิบ */
+.pickup-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 20px;
+  padding: 18px 16px;
+  border-radius: 12px;
+  background: #1967b3;
+  color: white;
+  text-align: center;
+}
+
+.pickup-box strong {
+  font-size: 40px;
+  line-height: 1.2;
+}
+
+.pickup-box span:last-child {
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+/* รายการจุดส่ง */
+.stop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.stop-card {
+  padding: 16px;
+  border: 1px solid #e6e5e3;
+  border-radius: 12px;
+  background: #f9f8f7;
+}
+
+.stop-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.stop-no {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.stop-time {
+  color: #595959;
+  font-size: 16px;
+}
+
+.stop-name {
+  margin: 4px 0 2px;
+  font-size: 20px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.stop-detail {
+  margin: 0 0 12px;
+  color: #595959;
+}
+
+.stop-detail strong {
+  color: #2c2c2b;
+}
+
+.stop-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* จุดถัดไปที่ต้องไป เด่นกว่าจุดอื่น */
+.stop-card.is-next {
+  border: 2px solid #1967b3;
+  background: white;
+}
+
+/* จุดที่ส่งแล้ว ย่อให้เด่นน้อยลง */
+.stop-card.is-delivered {
+  background: #e8f1ec;
+  border-color: #c3dccb;
+}
+
+.stop-card.is-delivered .stop-name,
+.stop-card.is-delivered .stop-detail {
+  color: #595959;
+}
+
+.stop-card.is-delivered .stop-detail {
+  margin-bottom: 0;
+}
+
+.delivered-badge {
+  color: #245437;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* ปุ่มส่งถึงแล้ว: กดครั้งแรกเปลี่ยนเป็นสีเข้มให้ยืนยัน */
+.deliver-button {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 8px;
+  padding: 12px 18px;
+  border: 2px solid #34724b;
+  border-radius: 8px;
+  background: white;
+  color: #245437;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.deliver-button.is-confirming {
+  background: #34724b;
+  color: white;
+}
+
+.deliver-button:focus-visible {
+  outline: 3px solid #1967b3;
+  outline-offset: 3px;
+}
+
+/* ความคืบหน้า */
+.delivery-progress {
+  margin-bottom: 16px;
+}
+
+.delivery-progress-text {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.delivery-progress-text strong {
+  color: #245437;
+}
+
+.delivery-progress-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #e6e5e3;
+  overflow: hidden;
+}
+
+.delivery-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: #34724b;
+  transition: width 0.3s ease;
+}
+
+.stop-error {
+  margin: 0 0 16px;
+}
+
+/* สรุปท้ายใบงาน */
+.job-summary {
+  margin: 0 0 20px;
+  padding: 4px 16px;
+  border: 1px solid #e6e5e3;
+  border-radius: 12px;
+}
+
+.job-summary > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0efed;
+}
+
+.job-summary > div:last-child {
+  border-bottom: none;
+}
+
+.job-summary dt {
+  color: #595959;
+}
+
+.job-summary dd {
+  margin: 0;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bottom-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.warning-box {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: 1px solid #b7791f;
+  border-radius: 8px;
+  background: #fdf1dc;
+  color: #7a4b00;
+  font-size: 16px;
+}
+
+/* ฟอร์มกรอกเลขใบงาน */
+.job-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.job-form label {
+  font-weight: 600;
+}
+
+.job-form input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 14px;
+  border: 1px solid #767676;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 20px;
+  letter-spacing: 0.5px;
+}
+
+.job-form input:focus-visible {
+  outline: 2px solid #1967b3;
+  outline-offset: 2px;
+}
+
+.job-form input[aria-invalid='true'] {
+  border-color: #bd3b30;
+}
+
+.field-error {
+  margin: 0;
+  color: #9c2b23;
+  font-size: 16px;
+}
+
+.job-form .primary-button {
+  margin-top: 8px;
+}
+
+/* ปุ่ม */
+/* ใช้ได้ทั้ง <button> และลิงก์ <a> ที่ทำหน้าตาเป็นปุ่ม */
+.primary-button,
+.secondary-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 12px 18px;
+  border: 1px solid;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+a.primary-button:focus-visible,
+a.secondary-button:focus-visible {
+  outline: 3px solid #1967b3;
+  outline-offset: 3px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.primary-button {
+  border-color: #1967b3;
+  background: #1967b3;
+  color: white;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: #145491;
+}
+
+.secondary-button {
+  border-color: #767676;
+  background: white;
+  color: #2c2c2b;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: #f0efed;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button:focus-visible {
+  outline: 3px solid #1967b3;
+  outline-offset: 3px;
+}
+
+.error-box {
+  margin: 20px 0 0;
+  padding: 14px 16px;
+  border: 1px solid #bd3b30;
+  border-radius: 8px;
+  background: #fff5f4;
+  color: #9c2b23;
+}

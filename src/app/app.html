@@ -1,0 +1,18 @@
+<header class="app-header">
+  <div class="header-content">
+    <span class="brand">{{ title() }}</span>
+
+    @if (!isRiderPage()) {
+    <nav aria-label="เมนูหลัก">
+      <a routerLink="/customers" routerLinkActive="active">ข้อมูลลูกค้า</a>
+      <a routerLink="/orders" routerLinkActive="active">ข้อมูลออเดอร์</a>
+      <a routerLink="/dispatch" routerLinkActive="active">จัดเส้นทาง</a>
+      <a routerLink="/rider" routerLinkActive="active">ใบงานไรเดอร์</a>
+    </nav>
+    }
+  </div>
+</header>
+
+<main>
+  <router-outlet />
+</main>
