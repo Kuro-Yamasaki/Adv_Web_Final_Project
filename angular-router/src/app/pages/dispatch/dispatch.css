@@ -48,13 +48,13 @@ h1 {
 }
 
 .primary-button {
-  border-color: #1967b3;
-  background: #1967b3;
-  color: white;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .primary-button:hover:not(:disabled) {
-  background: #145491;
+  background: var(--accent-hover);
 }
 
 .secondary-button {
@@ -73,7 +73,7 @@ button:disabled {
 }
 
 button:focus-visible {
-  outline: 3px solid #1967b3;
+  outline: 3px solid var(--ink);
   outline-offset: 3px;
 }
 
@@ -102,7 +102,7 @@ button:focus-visible {
 }
 
 .text-link {
-  color: #145491;
+  color: var(--accent-text);
   font-weight: 600;
 }
 
@@ -164,13 +164,13 @@ button:focus-visible {
 }
 
 .strategy-option.selected {
-  border-color: #1967b3;
-  background: #e5f2fc;
-  box-shadow: inset 0 0 0 1px #1967b3;
+  border-color: var(--accent-strong);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-strong);
 }
 
 .strategy-option:focus-within {
-  outline: 3px solid #1967b3;
+  outline: 3px solid var(--ink);
   outline-offset: 2px;
 }
 
@@ -448,7 +448,7 @@ tbody tr.late-row {
 /* ลิงก์และปุ่มคัดลอกใบงานในตาราง */
 .rider-cell .job-link {
   display: block;
-  color: #145491;
+  color: var(--accent-text);
   font-size: 14px;
   font-weight: 600;
 }
@@ -471,7 +471,7 @@ tbody tr.late-row {
 
 .copy-button:focus-visible,
 .rider-cell .job-link:focus-visible {
-  outline: 3px solid #1967b3;
+  outline: 3px solid var(--ink);
   outline-offset: 2px;
 }
 

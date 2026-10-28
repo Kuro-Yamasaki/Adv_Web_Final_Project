@@ -62,13 +62,13 @@ h1 {
 }
 
 .primary-button {
-  border-color: #1967b3;
-  background: #1967b3;
-  color: white;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .primary-button:hover:not(:disabled) {
-  background: #145491;
+  background: var(--accent-hover);
 }
 
 .secondary-button {
@@ -82,13 +82,13 @@ h1 {
 }
 
 .edit-button {
-  border-color: #1967b3;
+  border-color: var(--accent-strong);
   background: white;
-  color: #145491;
+  color: var(--accent-text);
 }
 
 .edit-button:hover:not(:disabled) {
-  background: #e5f2fc;
+  background: var(--accent-soft);
 }
 
 .danger-button {
@@ -117,7 +117,7 @@ button:disabled {
 }
 
 button:focus-visible {
-  outline: 3px solid #1967b3;
+  outline: 3px solid var(--ink);
   outline-offset: 3px;
 }
 
@@ -243,7 +243,7 @@ fieldset {
 .form-field input:focus-visible,
 .form-field select:focus-visible,
 .inline-select:focus-visible {
-  outline: 2px solid #1967b3;
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
 
@@ -257,7 +257,7 @@ fieldset {
 }
 
 .form-field small a {
-  color: #145491;
+  color: var(--accent-text);
   font-weight: 600;
 }
 
@@ -330,7 +330,7 @@ tbody tr:hover {
 }
 
 tbody tr.editing-row {
-  background: #e5f2fc;
+  background: var(--accent-soft);
 }
 
 .badge {
@@ -354,8 +354,8 @@ tbody tr.editing-row {
 
 /* สถานะออเดอร์ */
 .status-pending {
-  background: #e5f2fc;
-  color: #145491;
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 
 .status-assigned {

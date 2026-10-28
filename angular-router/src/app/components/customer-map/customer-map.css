@@ -23,10 +23,10 @@ app-customer-map {
   justify-content: center;
   width: 44px;
   height: 44px;
-  border: 3px solid white;
+  border: 3px solid var(--ink);
   border-radius: 50%;
-  background: #2c2c2b;
-  color: white;
+  background: var(--accent);
+  color: var(--on-accent);
   font-size: 13px;
   font-weight: 700;
   box-shadow: 0 1px 4px rgb(0 0 0 / 40%);

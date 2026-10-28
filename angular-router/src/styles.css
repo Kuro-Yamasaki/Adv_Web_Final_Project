@@ -1,3 +1,28 @@
 @import "leaflet/dist/leaflet.css";
 @import "tailwindcss";
 @plugin "daisyui";
+
+/* ธีมดำ–เหลือง: แก้สีทั้งเว็บได้ที่นี่ที่เดียว */
+:root {
+  --ink: #141414;            /* ดำหลัก: หัวเว็บ ตัวหนังสือสำคัญ */
+  --ink-soft: #2b2b2b;
+  --accent: #ffc107;         /* เหลืองหลัก: ปุ่มหลัก ไฮไลต์ */
+  --accent-hover: #f0b000;
+  --accent-strong: #c79100;  /* เส้นขอบเหลืองที่ต้องเห็นชัดบนพื้นขาว */
+  --accent-soft: #fff3c4;    /* พื้นเหลืองอ่อน: แถวที่เลือก/hover */
+  --accent-softer: #fffbea;
+  --accent-text: #7a5200;    /* ตัวหนังสือลิงก์โทนเหลืองเข้ม (อ่านง่ายบนพื้นขาว) */
+  --on-accent: #141414;      /* ตัวหนังสือบนพื้นเหลือง */
+  --page-bg: #efede6;      /* พื้นหลังหน้า เข้มกว่าการ์ดเล็กน้อย */
+}
+
+html,
+body {
+  background: var(--page-bg);
+}
+
+/* หัวข้อหน้า (ลูกค้า ออเดอร์ จัดเส้นทาง) มีแถบเหลืองด้านซ้าย */
+.page-header h1 {
+  padding-left: 12px;
+  border-left: 6px solid var(--accent);
+}

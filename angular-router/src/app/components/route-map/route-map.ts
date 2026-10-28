@@ -66,7 +66,7 @@ function popupContent(lines: string[]): HTMLElement {
       border: 2px solid white; border-radius: 50%; color: white; font-weight: 700;
       box-shadow: 0 1px 4px rgb(0 0 0 / 40%);
     }
-    .rmap-shop span { width: 40px; height: 40px; background: #2c2c2b; font-size: 13px; }
+    .rmap-shop span { width: 40px; height: 40px; border-color: var(--ink); background: var(--accent); color: var(--on-accent); font-size: 13px; }
     .rmap-stop span { width: 26px; height: 26px; font-size: 13px; }
     @media (max-width: 600px) { .rmap { height: 340px; } }
   `,

@@ -384,7 +384,7 @@ export class Customers implements OnInit {
     this.successMessage.set('');
     this.pickingCenter.set(false);
     this.showAddForm.set(true);
-    this.scrollTo('customer-form');
+    this.scrollTo('customer-map-section'); // แผนที่อยู่เหนือฟอร์ม เห็นทั้งคู่
   }
 
   openEditForm(customer: Customer): void {
@@ -407,7 +407,7 @@ export class Customers implements OnInit {
     this.successMessage.set('');
     this.pickingCenter.set(false);
     this.showAddForm.set(true);
-    this.scrollTo('customer-form');
+    this.scrollTo('customer-map-section'); // แผนที่อยู่เหนือฟอร์ม เห็นทั้งคู่
   }
 
   cancelAddForm(): void {

@@ -20,7 +20,7 @@ import {
 } from '../../shop.config';
 import { distanceKm } from '../../utils/geo';
 
-const COLOR_INSIDE = '#1967b3';
+const COLOR_INSIDE = '#141414'; // ธีมดำ–เหลือง
 const COLOR_OUTSIDE = '#c2410c';
 const COLOR_SEARCH = '#7c3aed';
 

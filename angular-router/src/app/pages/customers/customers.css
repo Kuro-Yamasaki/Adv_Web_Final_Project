@@ -23,16 +23,17 @@ h2 {
 .small { font-size: 13px; }
 
 /* ---------- หัวหน้า ---------- */
+/* หัวหน้า: ชื่อหน้าซ้าย ช่องค้นหาขวาบน */
 .page-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 520px);
+  align-items: start;
   gap: 24px;
   margin-bottom: 20px;
 }
 
 .page-header p {
-  margin: 0;
+  margin: 0 0 14px;
   color: #5c5c5a;
 }
 
@@ -59,12 +60,12 @@ h2 {
 }
 
 .primary-button {
-  border: 1px solid #1967b3;
-  background: #1967b3;
-  color: white;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
-.primary-button:hover:not(:disabled) { background: #145491; }
+.primary-button:hover:not(:disabled) { background: var(--accent-hover); }
 
 .secondary-button {
   border: 1px solid #b5b4b1;
@@ -76,9 +77,9 @@ h2 {
 
 .secondary-button.is-open,
 .secondary-button.is-active {
-  border-color: #1967b3;
-  background: #e5f2fc;
-  color: #145491;
+  border-color: var(--accent-strong);
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 
 .danger-button {
@@ -93,7 +94,7 @@ h2 {
   padding: 6px 8px;
   border: 0;
   background: none;
-  color: #145491;
+  color: var(--accent-text);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -105,13 +106,13 @@ h2 {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #145491;
+  color: var(--accent-text);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
 }
 
-.ghost-button:hover:not(:disabled) { background: #e5f2fc; }
+.ghost-button:hover:not(:disabled) { background: var(--accent-soft); }
 .ghost-danger { color: #b42318; }
 .ghost-danger:hover:not(:disabled) { background: #fdecea; }
 
@@ -123,13 +124,12 @@ button:disabled {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible {
-  outline: 3px solid #1967b3;
+  outline: 3px solid var(--ink);
   outline-offset: 2px;
 }
 
 /* ---------- ค้นหา ---------- */
 .toolbar {
-  margin-bottom: 20px;
   padding: 16px;
   border: 1px solid #e6e5e3;
   border-radius: 12px;
@@ -204,25 +204,26 @@ input.ng-invalid.ng-touched { border-color: #b42318; }
   font-weight: 600;
 }
 
-/* ---------- เลย์เอาต์: ซ้าย = ฟอร์ม/รายชื่อ, ขวา = แผนที่ค้างไว้ ---------- */
+/* ---------- เลย์เอาต์: แผนที่บนสุด, ใต้แผนที่ = ฟอร์ม (ซ้าย) + รายชื่อ ---------- */
+.map-area {
+  margin-bottom: 20px;
+}
+
+.map-area,
+.form-card,
+.delete-card {
+  scroll-margin-top: 84px; /* ไม่ให้หัวเว็บที่ค้างอยู่บังตอนเลื่อนมาหา */
+}
+
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-  grid-template-areas:
-    "panel map"
-    "list  map";
-  grid-template-rows: auto 1fr;
-  column-gap: 24px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
   align-items: start;
 }
 
-.panel-area { grid-area: panel; }
-.list-area { grid-area: list; }
-
-.map-area {
-  grid-area: map;
-  position: sticky;
-  top: 16px;
+.workspace.has-panel {
+  grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
 }
 
 .map-card {
@@ -233,7 +234,7 @@ input.ng-invalid.ng-touched { border-color: #b42318; }
 }
 
 :host ::ng-deep .map-area .cmap {
-  height: clamp(360px, calc(100vh - 160px), 680px);
+  height: 440px;
 }
 
 .map-card-header {
@@ -268,8 +269,8 @@ input.ng-invalid.ng-touched { border-color: #b42318; }
   border-radius: 50%;
 }
 
-.legend-shop { background: #2c2c2b; }
-.legend-inside { background: #1967b3; }
+.legend-shop { box-sizing: border-box; border: 2px solid var(--ink); background: var(--accent); }
+.legend-inside { background: var(--ink); }
 .legend-outside { background: #c2410c; }
 .legend-picked { background: #16a34a; }
 .legend-search { box-sizing: border-box; border: 2px solid #7c3aed; }
@@ -292,8 +293,8 @@ input.ng-invalid.ng-touched { border-color: #b42318; }
 }
 
 .form-card {
-  border: 2px solid #1967b3;
-  background: #f5faff;
+  border: 2px solid var(--accent-strong);
+  background: var(--accent-softer);
 }
 
 .delete-card {
@@ -415,7 +416,7 @@ th {
 
 tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover { background: #f9f8f7; }
-tbody tr.is-editing { background: #e5f2fc; }
+tbody tr.is-editing { background: var(--accent-soft); }
 tbody tr.is-deleting { background: #fdecea; }
 
 .name-button {
@@ -430,10 +431,10 @@ tbody tr.is-deleting { background: #fdecea; }
   cursor: pointer;
 }
 
-.name-button:hover { color: #145491; text-decoration: underline; }
+.name-button:hover { color: var(--accent-text); text-decoration: underline; }
 
 .phone-link {
-  color: #145491;
+  color: var(--accent-text);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -486,20 +487,11 @@ tbody tr.is-deleting { background: #fdecea; }
   border: 0;
 }
 
-/* ---------- จอเล็ก: ฟอร์ม → แผนที่ → รายชื่อ ---------- */
+/* ---------- จอกลาง/เล็ก: เรียงเป็นแถวเดียว ---------- */
 @media (max-width: 960px) {
-  .workspace {
+  .page-header,
+  .workspace.has-panel {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "panel"
-      "map"
-      "list";
-    grid-template-rows: none;
-  }
-
-  .map-area {
-    position: static;
-    margin-bottom: 20px;
   }
 
   :host ::ng-deep .map-area .cmap { height: 360px; }
@@ -507,12 +499,6 @@ tbody tr.is-deleting { background: #fdecea; }
 
 @media (max-width: 600px) {
   .customer-page { padding: 20px 16px; }
-
-  .page-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 14px;
-  }
 
   .header-actions > button { flex: 1; }
 
