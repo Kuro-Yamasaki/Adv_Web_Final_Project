@@ -2,27 +2,61 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
-/* ธีมดำ–เหลือง: แก้สีทั้งเว็บได้ที่นี่ที่เดียว */
+/* ธีมดำ–เหลือง (โหมดมืด): แก้สีทั้งเว็บได้ที่นี่ที่เดียว */
 :root {
-  --ink: #141414;            /* ดำหลัก: หัวเว็บ ตัวหนังสือสำคัญ */
+  color-scheme: dark;        /* ช่องกรอก/scrollbar ของเบราว์เซอร์เป็นแบบมืด */
+
+  --ink: #141414;            /* ดำ: หัวเว็บ ตัวหนังสือบนปุ่มเหลือง */
   --ink-soft: #2b2b2b;
+  --page-bg: #0e0e0e;        /* พื้นหลังหน้า */
+  --surface: #1c1c1c;        /* การ์ด ตาราง ช่องกรอก */
+  --surface-2: #272727;      /* หัวตาราง แถว hover */
+  --border: #343434;
+  --border-strong: #5a5a5a;
+  --text: #f2f0ea;
+  --text-muted: #aaa69c;
+
   --accent: #ffc107;         /* เหลืองหลัก: ปุ่มหลัก ไฮไลต์ */
-  --accent-hover: #f0b000;
-  --accent-strong: #c79100;  /* เส้นขอบเหลืองที่ต้องเห็นชัดบนพื้นขาว */
-  --accent-soft: #fff3c4;    /* พื้นเหลืองอ่อน: แถวที่เลือก/hover */
-  --accent-softer: #fffbea;
-  --accent-text: #7a5200;    /* ตัวหนังสือลิงก์โทนเหลืองเข้ม (อ่านง่ายบนพื้นขาว) */
-  --on-accent: #141414;      /* ตัวหนังสือบนพื้นเหลือง */
-  --page-bg: #efede6;      /* พื้นหลังหน้า เข้มกว่าการ์ดเล็กน้อย */
+  --accent-hover: #ffd23f;
+  --accent-strong: #ffc107;
+  --accent-soft: rgb(255 193 7 / 16%);   /* แถวที่เลือก */
+  --accent-softer: rgb(255 193 7 / 7%);
+  --accent-text: #ffcf40;    /* ลิงก์/ตัวหนังสือเน้นสีเหลือง */
+  --on-accent: #141414;
+
+  /* น้ำเงิน = สีรอง: ลิงก์ เบอร์โทร ปุ่มดู/แก้ไข กล่องข้อมูล แถวที่เลือก */
+  --link: #6cb4ff;
+  --info: #3d8bfd;
+  --info-soft: rgb(61 139 253 / 18%);
+  --info-text: #a9d1ff;
+
+  --success-bg: #13281b;
+  --success-text: #8fdcab;
+  --success-border: #2f6b46;
+  --danger-bg: #2e1513;
+  --danger-text: #ff8a80;
+  --danger-border: #d9534f;
+  --warning-bg: #2e250b;
+  --warning-text: #ffd666;
+  --orange-bg: #2f1c0e;
+  --orange-text: #ffa36b;
+  --purple-bg: #241d36;
+  --purple-text: #c9b8ff;
 }
 
 html,
 body {
   background: var(--page-bg);
+  color: var(--text);
 }
 
 /* หัวข้อหน้า (ลูกค้า ออเดอร์ จัดเส้นทาง) มีแถบเหลืองด้านซ้าย */
 .page-header h1 {
   padding-left: 12px;
   border-left: 6px solid var(--accent);
+}
+
+/* ตารางทุกหน้าใช้พื้นการ์ด ไม่จมไปกับพื้นหลัง */
+.table-wrapper {
+  background: var(--surface);
 }

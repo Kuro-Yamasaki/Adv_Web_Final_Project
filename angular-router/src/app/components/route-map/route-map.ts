@@ -60,7 +60,7 @@ function popupContent(lines: string[]): HTMLElement {
   template: `<div #map class="rmap" role="application" aria-label="แผนที่เส้นทางไรเดอร์"></div>`,
   styles: `
     app-route-map { display: block; margin-bottom: 24px; }
-    .rmap { height: 480px; border: 1px solid #e6e5e3; border-radius: 8px; z-index: 0; }
+    .rmap { height: 480px; border: 1px solid var(--border); border-radius: 8px; z-index: 0; }
     .rmap-shop span, .rmap-stop span {
       display: flex; align-items: center; justify-content: center;
       border: 2px solid white; border-radius: 50%; color: white; font-weight: 700;

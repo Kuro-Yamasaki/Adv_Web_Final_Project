@@ -4,7 +4,7 @@ app-customer-map {
 
 .cmap {
   height: 420px;
-  border: 1px solid #e6e5e3;
+  border: 1px solid var(--border);
   border-radius: 8px;
   z-index: 0;
 }
